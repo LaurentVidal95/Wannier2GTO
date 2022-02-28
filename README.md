@@ -1,4 +1,5 @@
 Here are some conventions of the code:
+
     - The fundamental building blocs of the code are gaussian-polynomial functions.
     Their polynomial part is described by its decomposition in the basis of 3 dimensional monoms, hence as a list of powers `(n_x, n_y, n_z)` and corresponding coefficients.
     Their are denoted `Χ` throughout the code. A family of `Χ` is indexed by greek letters.
