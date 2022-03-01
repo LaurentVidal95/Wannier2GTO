@@ -17,7 +17,7 @@ function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15)
     
     model = model_PBE(lattice, atoms)
     basis = PlaneWaveBasis(model; Ecut=Ecut, kgrid=kgrid)
-    self_consistent_field(basis, n_bands=n_bands);
+    # self_consistent_field(basis, n_bands=n_bands);
 end
 
 run_wannier90_graphene(scfres; prefix="w90_output/graphene") =

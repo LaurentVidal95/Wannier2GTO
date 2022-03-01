@@ -1,23 +1,32 @@
 """
 Cost function to minimize at each greedy algorithm iteration
 """
-J(basis::PlaneWaveBasis, Φi, Res; s=1) = dist_Hs(basis, Φi, Res, s=s)^2
+J(basis::PlaneWaveBasis, Φi, Res; s=0) = dist_Hs(basis, Φi, Res, s=s)^2
+
+default_orders = ([0,2,3], [1,3,5])
 
 """
 J(ζ, λ(ζ), Res) where λ(ζ) ∈ argmin λ -> J(ζ, λ, Res)
 """
-function J!(basis::PlaneWaveBasis, α0::Vector{T}, ζs::Vector{T}, r::T, θ::T, Res, Φ;
-            s=1, ζ_min=1e-3,
-            xy_orders=[0,2,3], z_orders=[1,3,5],
+function J!(basis::PlaneWaveBasis, Res,
+            # Spread and center (in polar coords) of SAGTOs
+            α0::Vector{T}, r::T, θ::T, ζs::Vector{T},
+            # Storage
+            Φ;
+            # Optimization parameters
+            s=0, ζ_min=1e-3,
+            pol_orders = default_orders,
+            # Return center
             return_all=false,
             ) where {T<:Real}
 
     # Avoid NaN when ζ is to small
     (findmin(ζs)[1] < ζ_min) && (return 1e10)
 
-    # Compute SAGTOs for given center and respective spreads
+    # Compute SAGTOs for given polynomial orders, center and respective spreads
+    xy_orders, z_orders = pol_orders
     α(r, θ) = polar_to_cartesian_coords(α0, r, θ)
-    Χs = SAGTOs_graphene_pz_wannier(basis, α(r, θ), ζs, xy_orders, z_orders)
+    Χs = SAGTOs_basis(basis, α(r, θ), ζs, xy_orders, z_orders)
     
     # Compute λ_opti s.t. Φ = ∑λ_opti_μ*Χμ ∈ argmin λ -> J(ζ, λ, Res)
     Γ = real.(ThreadsX.map(Χ -> Hs_scalar_prod(basis, Res, Χ, s=s), Χs))
@@ -28,10 +37,8 @@ function J!(basis::PlaneWaveBasis, α0::Vector{T}, ζs::Vector{T}, r::T, θ::T, 
     # Add AOs at jx and j^2x if needed and update centers and coefficients
     D3_sym = iszero(r);
     if !(D3_sym)
-        append!(Χs,
-                SAGTOs_graphene_pz_wannier(basis, α(r, (2π/3)+θ), ζs, xy_orders, z_orders))
-        append!(Χs,
-                SAGTOs_graphene_pz_wannier(basis, α(r, (4π/3)+θ), ζs, xy_orders, z_orders))
+        append!(Χs, SAGTOs_basis(basis, α(r, (2π/3)+θ), ζs, xy_orders, z_orders))
+        append!(Χs, SAGTOs_basis(basis, α(r, (4π/3)+θ), ζs, xy_orders, z_orders))
         α_Φ = [α(r, θ), α(r, (2π/3)+θ), α(r, (4π/3)+θ)]
         λ_opti = vcat(λ_opti, λ_opti, λ_opti)
     end
@@ -39,9 +46,8 @@ function J!(basis::PlaneWaveBasis, α0::Vector{T}, ζs::Vector{T}, r::T, θ::T, 
     # Compute J with optimal linear combination of Χs
     Φ_opti =  sum(λ .* Χ for (λ, Χ) in zip(λ_opti, Χs))
     # Actualize "in place" storage for exterior computations
-    for (μ, Φμ_opti) in enumerate(Φ_opti)
-        Φ[μ] .= Φμ_opti
-    end
+    for (μ, Φμ_opti) in enumerate(Φ_opti); Φ[μ] .= Φμ_opti; end
+    
     # Return only J (for Optim routine) or J and coefficient (for storage)
     return_all && (return J(basis, Φ_opti, Res, s=s), λ_opti[1:len_λ_opti], α_Φ)
     J(basis, Φ_opti, Res, s=s)

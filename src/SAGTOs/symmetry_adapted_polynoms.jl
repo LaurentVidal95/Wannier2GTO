@@ -24,7 +24,7 @@ end
 """
 Select among above parameters given a maximum order in (x,y) and z.
 """
-function compute_orders(max_xy_order, max_z_order; D3_sym=true)
+function select_orders(max_xy_order, max_z_order; D3_sym=true)
     !(D3_sym) && (max_xy_order=min(max_xy_order,2))
     xy_orders = [0,2,3,6,9]; z_orders = [1,3,5,7,9];
     xy_orders[xy_orders .≤ max_xy_order], z_orders[z_orders .≤ max_z_order]
@@ -33,29 +33,15 @@ end
 """
 Attention: the GaIn lib only handles gaussian integrals when (nx+ny+nz)≤6
 """
-SAGTO_parameters(xy_orders, z_orders) = [symmetry_adapted_polynoms(nxy,nz)
-                  for nz in z_orders for nxy in xy_orders if (nz+nxy) ≤ 6]
+SAGTOs_polynoms(xy_orders, z_orders) =
+    [PolynomialPart(symmetry_adapted_polynoms(nxy,nz)...) for nz in z_orders
+                                        for nxy in xy_orders if (nz+nxy) ≤ 6]
 """
 Wraps the two functions above
 """
-function SAGTO_parameters(max_xy_order::Int64, max_z_order::Int64, D3_sym::Bool)
-    xy_orders, z_orders = compute_orders(max_xy_order, max_z_order, D3_sym=D3_sym)
-    SAGTO_parameters(xy_orders, z_orders)
-end
-
-@doc raw"""
-Return a table containing all Bloch decompotions of an AO basis adapted to the
-compression of a pz-like orbital of graphene, with with same centers and 
-different respective spreads contained in ``ζs``.
-"""
-function construct_pz_SAGTO_basis(basis::PlaneWaveBasis, α::Vector{T}, ζs::Vector{T},
-                            xy_orders, z_orders) where {T<:Real}
-    @assert( length(ζs) == length(xy_orders)* length(z_orders) )
-    # Import all polynomial parameters in a single table and create corresponding AOs
-    SAGTO_params = SAGTO_parameters(xy_orders, z_orders)
-    Χs = [GaussianPolynomial(pow, coeff, α, ζ) for ((pow, coeff), ζ) in zip(SAGTO_params, ζs)]
-    # Return in Fourier
-    discrete_Bloch_transform.(basis, Χs)
+function SAGTOs_polynoms(max_xy_order::Int64, max_z_order::Int64, D3_sym::Bool)
+    xy_orders, z_orders = select_orders(max_xy_order, max_z_order, D3_sym=D3_sym)
+    SAGTOs_polynoms(xy_orders, z_orders)
 end
 
 # function ∇SAGTO_parameters(xy_orders, z_orders)

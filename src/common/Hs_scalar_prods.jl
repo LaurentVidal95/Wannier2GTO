@@ -35,7 +35,7 @@ function Hs_overlap(basis::PlaneWaveBasis, Χs; s=1, n=1)
     # Run over all GTOs and compute overlaps
     for μ in 1:num_aos
         for ν in μ:num_aos
-            S[μ,ν] = Hs_scalar_prod(basis, Χ[μ], Χ[ν], s=s, ns=(n,n))
+            S[μ,ν] = Hs_scalar_prod(basis, Χs[μ], Χs[ν], s=s, ns=(n,n))
             # Symmetrize
             (μ≠ν) && (S[ν,μ] = conj(S[μ,ν]))
         end
@@ -57,10 +57,10 @@ function Hs_projection_on_AO_basis(basis::PlaneWaveBasis, ψ, Χs;
 
     # Compute the coefficients of the projection
     S = real.(Hs_overlap(basis, Χs, s=s))
-    X = real.([Hs_scalar_prod(basis, ψ, Χμ, s=s) for Χμ in Χs])
+    Χ = real.([Hs_scalar_prod(basis, ψ, Χμ, s=s) for Χμ in Χs])
     # Check for conditioning issues before inverting
     (cond(S) > 1e15) && (@warn "cond(S)>1e15"; return nothing, nothing)
-    C_opti = (Symmetric(S)\X)
+    C_opti = (Symmetric(S)\Χ)
     # Assemble projection in Fourier and normalize
     sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), C_opti
 end
