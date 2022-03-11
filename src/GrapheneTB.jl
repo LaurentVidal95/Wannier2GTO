@@ -5,16 +5,20 @@ using Optim
 using LineSearches
 using ForwardDiff
 using DFTK
+
 using Printf
 using DelimitedFiles
+using WriteVTK
 
 # Utils
 export Hs_scalar_prod
 export Hs_overlap
 export Hs_projection_on_AO_basis
+export G_to_r_supercell
 include("common/Hs_scalar_prods.jl")
 include("common/utils.jl")
 include("common/read_data.jl")
+include("common/ifft_supercell.jl")
 
 # SAGTOs
 export GaussianPolynomial

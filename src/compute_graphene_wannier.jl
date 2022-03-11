@@ -2,7 +2,7 @@ using DFTK
 using wannier90_jll
 using DelimitedFiles
 
-function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15)
+function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15, kshift=zeros(3))
     # Lattice
     ang_to_bohr = 1.88973; a = ang_to_bohr*2.641; # from wiki
     a_1 = [a; 0; 0];
@@ -16,8 +16,8 @@ function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15)
     atoms = [C => [[0.0, 0.0, 0.0], [1//3, 2//3, 0.0]]]
     
     model = model_PBE(lattice, atoms)
-    basis = PlaneWaveBasis(model; Ecut=Ecut, kgrid=kgrid)
-    # self_consistent_field(basis, n_bands=n_bands);
+    basis = PlaneWaveBasis(model; Ecut=Ecut, kgrid=kgrid, kshift=kshift)
+    self_consistent_field(basis, n_bands=n_bands);
 end
 
 run_wannier90_graphene(scfres; prefix="w90_output/graphene") =
