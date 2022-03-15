@@ -20,13 +20,15 @@ function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15, kshift=zeros(3))
     self_consistent_field(basis, n_bands=n_bands);
 end
 
-run_wannier90_graphene(scfres; prefix="w90_output/graphene") =
-    run_wannier90(scfres, 
-                  fileprefix=prefix,
-                  n_bands=13, n_wannier=5,
-                  write_u_matrices=".TRUE.",
-                  write_xyz=".TRUE.",
-                  # plot
-                  # wannier_plot=true, wannier_plot_supercell=4,
-                  # disentanglement
-                  dis_win_max=19.0, dis_froz_max=0.19, dis_num_iter=300)
+function run_wannier90_graphene(scfres; prefix="w90_output/graphene", plot_wannier=false)
+    kwargs = (fileprefix=prefix,
+              n_bands=13, n_wannier=5,
+              # Data to recover Wannier as tensor in julia
+              write_u_matrices=".TRUE.",
+              write_xyz=".TRUE.",
+              # Disentanglement
+              dis_win_max=19.0, dis_froz_max=0.19, dis_num_iter=300)
+    # Plot if needed
+    (plot_wannier) && (kwargs = merge(kwargs, (; wannier_plot=true, wannier_plot_supercell=4)))
+    run_wannier90(scfres; kwargs...)
+end

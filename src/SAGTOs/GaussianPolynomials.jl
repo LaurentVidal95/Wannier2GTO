@@ -52,18 +52,25 @@ end
 """
 Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
 GaussianPolynomial using DFTK FFT routines.
-TODO: use supercell instead of cell if cell is to small to avoid sampling issues.
 """
 function discrete_Bloch_transform(basis::PlaneWaveBasis, basis_SC::PlaneWaveBasis,
                                   g::GaussianPolynomial)
     # Shift g to the center of the cell to avoid sampling issues
     shift = sum(ei ./ 2 for ei in eachcol(basis_SC.model.lattice)) .- g.α
     g_fourier = r_to_G(basis_SC, g.(collect(r_vectors_cart(basis_SC)) .- Ref(shift)))
-
     # Shift back in fourier for plotting
     for (iG, G) in enumerate(G_vectors_cart(basis_SC))
         g_fourier[iG] *= cis(dot(G, .-shift))
     end
+    # Return only the coefficient corresponding to non zero wannier coefficients.
+    g_vec = g_fourier[basis_SC.kpoints[1].mapping]
+    g_vec ./ norm(g_vec)
+
+    ## TO KEEP
+    # g_out = zero(g_fourier);
+    # g_out[basis_SC.kpoints[1].mapping] .= g_fourier[basis_SC.kpoints[1].mapping]
+    # g_out
+    
     # cell_supercell_mapping(kpt) = DFTK.index_G_vectors.(basis_SC,
     #             Ref(basis_SC.kpoints[1]), DFTK.Gplusk_vectors_in_supercell(basis, kpt))
 
