@@ -1,5 +1,3 @@
-using WriteVTK
-
 # Extract Wannier90 output
 function read_w90_output_mat(file, n_bands_tot)
     Uks = readdlm(file); num_kpts, num_ψout, num_ψin = Uks[2,1:3];

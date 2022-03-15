@@ -44,7 +44,7 @@ end
 
 @doc raw"""
     Compute projection on a given AO basis ``Χs``. Format:
-    ``Χs = [Χ1, ... , Χ_Nb]`` where each ``Χμ`` is a table ``[Χμ][ik]``
+    ``Χs = [Χ1, ... , Χ_Nb]`` where each ``Χμ`` is a vector ``Χμ[k+G]``
     of fourier coefficients of ``Χμ`` at frequency ``k+Gs``.
     Kwarg ``s`` is the choice of Hs norm for the projection.
 """

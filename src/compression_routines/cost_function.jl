@@ -1,5 +1,3 @@
-default_orders = ([0,2,3], [1,3,5])
-
 """
 J(ζ, λ(ζ), Res) where λ(ζ) ∈ argmin λ -> J(ζ, λ, Res)
 """
@@ -10,7 +8,7 @@ function J!(basis_SC::PlaneWaveBasis, Res,
             Φ_out;
             # Optimization parameters
             s=0, ζ_min=1e-3,
-            pol_orders = default_orders,
+            pol_orders = ([0,2,3], [1,3,5]),
             # Return center
             return_all=false,
             ) where {T<:Real}
