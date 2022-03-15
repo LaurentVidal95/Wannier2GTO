@@ -1,6 +1,5 @@
 using DFTK
 using wannier90_jll
-using DelimitedFiles
 
 function scf_graphene(n_bands; kgrid=[8,8,1], Ecut=15, kshift=zeros(3))
     # Lattice
