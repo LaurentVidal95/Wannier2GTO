@@ -1,14 +1,5 @@
 using DFTK
 
-# """
-#     Compute Hs scalar product in Fourier between two Block state
-# """
-# function Hs_scalar_prod(basis::PlaneWaveBasis, kpt::Kpoint{T}, ψ1_k, ψ2_k; s=1) where {T<:Real}
-#     # Prefact for the Hs norm
-#     prefac_Hs = [(1 + norm(kpG_cart)^2)^s for kpG_cart in Gplusk_vectors_cart(basis, kpt)]
-#     dot(prefac_Hs .* ψ1_k, ψ2_k)
-# end
-
 """
 Computes the Hs scalar product of two vectors containing all (k+G) Fourier coefficients.
 In DFTK conventions, these vectors are Bloch wave of the supercell Gamma point.
@@ -49,7 +40,7 @@ end
     Kwarg ``s`` is the choice of Hs norm for the projection.
 """
 function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ, Χs; s=0)
-    # Check that Ψ and all AOs have bin converted to supercell conventions
+    # Check that Ψ and all AOs have been converted to supercell conventions
     num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))
     @assert( (length(ψ)==num_kpG) && (length(Χs[1])==num_kpG) )
 
