@@ -50,25 +50,16 @@ function extract_wannier_functions(prefix, scfres::NamedTuple)
     apply_U_matrices("$(prefix)_u.mat", ψ_unfold)
 end
 
-"""
-   Produce vts files that are readable with Paraview to plot Wannier functions.
-   The wannier functions are given in Bloch decomposition format.
-"""
-function Bloch_to_vtk(basis::PlaneWaveBasis, w_fourier, prefix, n_band)
-    basis_supercell = DFTK.cell_to_supercell(basis, touch_atoms=false)
-    # Extract real supercell grid
-    r_vec = collect(r_vectors_cart(basis_supercell))
-    x = [r[1] for r in r_vec]; y = [r[2] for r in r_vec]; z = [r[3] for r in r_vec];
-    # Perfom ifft
-    wn_real = G_to_r_supercell(basis, [wk[:, n_band] for wk in w_fourier])
-    vtk_grid(prefix*"_wannier_$(n_band)", x, y, z) do vtk
-        vtk["value"]=real.(wn_real)
+function wannier_as_supercell_vector(basis_unfold, basis_SC, w, n_band)
+    num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))
+    w_vec = zeros(ComplexF64, num_kpG)
+    cell_supercell_mapping(kpt) = DFTK.index_G_vectors.(basis_SC, Ref(basis_SC.kpoints[1]),
+                                  DFTK.Gplusk_vectors_in_supercell(basis_unfold, kpt))
+    for (ik, kpt) in enumerate(basis_unfold.kpoints)
+        w_vec[cell_supercell_mapping(kpt)] .= w[ik][:,n_band]
     end
-    nothing
+    w_vec ./ sqrt(length(basis_unfold.kpoints))
 end
-plot_wannier_function(scfres::NamedTuple, prefix::String, n_band) =
-    Bloch_to_vtk(DFTK.unfold_bz(scfres.basis),
-                 extract_wannier_functions(prefix, scfres), prefix, n_band)
 
 # Extract stored data
 function read_wannier_dir(dir)

@@ -15,8 +15,8 @@ end
 """
 Returns the table of Bloch decomposition of SAGTOs given by the above routine.
 """
-function SAGTOs_basis(basis::PlaneWaveBasis{T}, α::Vector{T}, ζs::Vector{T},
+function SAGTOs_basis(basis_SC::PlaneWaveBasis{T}, α::Vector{T}, ζs::Vector{T},
                       xy_orders, z_orders) where {T<:Real}
     Χs = SAGTOs_basis(α, ζs, xy_orders, z_orders)
-    ThreadsX.map(Χ->Χ(basis), Χs)
+    ThreadsX.map(Χ->Χ(basis_SC), Χs)
 end

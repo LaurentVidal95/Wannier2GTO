@@ -30,54 +30,62 @@ mutable struct GaussianPolynomial{T<:Real}
     pol::PolynomialPart # See below
     α::Vector{T}
     ζ::T
+    Fourier_transform
 end
-(g::GaussianPolynomial)(X)= g.pol(X .- g.α) * exp(-g.ζ*norm(X .- g.α)^2)
-GaussianPolynomial(exps, coeffs, α, ζ) = GaussianPolynomial(PolynomialPart(exps, coeffs),
-                                                            α, ζ)
+(Χ::GaussianPolynomial)(R)= Χ.pol(R .- Χ.α) * exp(-Χ.ζ*norm(R .- Χ.α)^2)
+F(Χ::GaussianPolynomial) = Χ.Fourier_transform
+
+function ∂n(h, n, x)
+    (n==0) && (return h(x))
+    (n==1) && (return ForwardDiff.derivative(h, x))
+    ∂n(y->ForwardDiff.derivative(h, y), n-1, x)
+end
+
+function GaussianPolynomial(exps, coeffs, α, ζ)
+    g_hat(q) = exp(-(q^2)/(4ζ))
+    Χ_hat(q) = cis(-dot(q,α)) * ThreadsX.sum( λμ*prod( (im^nj)*∂n(y->g_hat(y), nj, qj)
+                                                       for (nj, qj) in zip(exp_μ, q) )
+                                              for (exp_μ, λμ) in zip(exps, coeffs) )
+    GaussianPolynomial(PolynomialPart(exps, coeffs), α, ζ, Χ_hat)
+end
+GaussianPolynomial(pol, α, ζ) = GaussianPolynomial(pol.exps, pol.coeffs, α, ζ)
+
 """
     Define sum for gaussians with same centers and spreads
     PB: Takes more time than summing directly tables of Fourier coefficients
 """
-function (+)(g1::GaussianPolynomial{T}, g2::GaussianPolynomial{T}) where {T<:Real}
-    @assert ((g1.α == g2.α) &&
-             (g1.ζ == g2.ζ)) "Only sum over gaussians with same centers and spreads."
-    GaussianPolynomial(g1.pol + g2.pol, g1.α, g1.ζ)
+function (+)(Χ1::GaussianPolynomial{T}, Χ2::GaussianPolynomial{T}) where {T<:Real}
+    @assert ((Χ1.α == Χ2.α) &&
+             (Χ1.ζ == Χ2.ζ)) "Only sum over gaussians with same centers and spreads."
+    GaussianPolynomial(Χ1.pol + Χ2.pol, Χ1.α, Χ1.ζ, F(Χ1) + F(Χ2))
 end
 
-(g::GaussianPolynomial)(basis::PlaneWaveBasis)=
-    discrete_Bloch_transform(basis, DFTK.cell_to_supercell(basis, touch_atoms=false),  g)
-(g::GaussianPolynomial)(basis::PlaneWaveBasis, basis_SC::PlaneWaveBasis) =
-    discrete_Bloch_transform(basis, basis_SC, g)
+(Χ::GaussianPolynomial)(basis_SC::PlaneWaveBasis) = discrete_Bloch_transform(basis_SC, Χ)
 
 """
-Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
-GaussianPolynomial using DFTK FFT routines.
+Evaluate Χ at all k+G vectors given a basis and returns in supercell convention
+(i.e. single vector containing all k+G coefficient in order given by
+G_vectors(basis_supercell, basis_supercell.Γ_point))
 """
-function discrete_Bloch_transform(basis::PlaneWaveBasis, basis_SC::PlaneWaveBasis,
-                                  g::GaussianPolynomial)
-    # Shift g to the center of the cell to avoid sampling issues
-    shift = sum(ei ./ 2 for ei in eachcol(basis_SC.model.lattice)) .- g.α
-    g_fourier = r_to_G(basis_SC, g.(collect(r_vectors_cart(basis_SC)) .- Ref(shift)))
-    # Shift back in fourier for plotting
-    for (iG, G) in enumerate(G_vectors_cart(basis_SC))
-        g_fourier[iG] *= cis(dot(G, .-shift))
-    end
-    # Return only the coefficient corresponding to non zero wannier coefficients.
-    g_vec = g_fourier[basis_SC.kpoints[1].mapping]
-    g_vec ./ norm(g_vec)
-
-    ## TO KEEP
-    # g_out = zero(g_fourier);
-    # g_out[basis_SC.kpoints[1].mapping] .= g_fourier[basis_SC.kpoints[1].mapping]
-    # g_out
-    
-    # cell_supercell_mapping(kpt) = DFTK.index_G_vectors.(basis_SC,
-    #             Ref(basis_SC.kpoints[1]), DFTK.Gplusk_vectors_in_supercell(basis, kpt))
-
-    # ThreadsX.map(basis.kpoints) do kpt
-    #     # prefactor to shift it back directly in Fourier.
-    #     shift_prefac = cis.(dot.(Gplusk_vectors_cart(basis, kpt), .-Ref(shift)))
-    #     gk = view(g_fourier, cell_supercell_mapping(kpt)) .* shift_prefac
-        # gk ./ norm(gk)
-    # end
+function discrete_Bloch_transform(basis_SC::PlaneWaveBasis, Χ::GaussianPolynomial)
+    Χ_fourier = F(Χ).(G_vectors_cart(basis_SC, only(basis_SC.kpoints)))
+    Χ_fourier ./ norm(Χ_fourier)
 end
+
+# """
+# Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
+# GaussianPolynomial using DFTK FFT routines.
+# """
+# function discrete_Bloch_transform(basis::PlaneWaveBasis, basis_SC::PlaneWaveBasis,
+#                                   Χ::GaussianPolynomial)
+#     # Shift Χ to the center of the cell to avoid sampling issues
+#     shift = sum(ei ./ 2 for ei in eachcol(basis_SC.model.lattice)) .- Χ.α
+#     Χ_fourier = r_to_G(basis_SC, Χ.(collect(r_vectors_cart(basis_SC)) .- Ref(shift)))
+#     # Shift back in fourier for plotting
+#     for (iG, G) in enumerate(G_vectors_cart(basis_SC))
+#         Χ_fourier[iG] *= cis(dot(G, shift))
+#     end
+#     # Return only the coefficient corresponding to non zero wannier coefficients.
+#     Χ_vec = Χ_fourier[basis_SC.kpoints[1].mapping]
+#     Χ_vec ./ norm(Χ_vec)
+# end

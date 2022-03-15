@@ -33,7 +33,8 @@ export run_wannier90_graphene
 include("compute_graphene_wannier.jl")
 
 # Compression
+export find_D3_sym_axis
 include("compression_routines/cost_function.jl")
-# include("compression_routines/compression.jl")
+include("compression_routines/compression.jl")
     
 end # module

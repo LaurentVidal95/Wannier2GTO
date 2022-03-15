@@ -20,7 +20,7 @@ function Hs_scalar_prod(basis_SC::PlaneWaveBasis{T}, ψ1, ψ2; s=0) where {T<:Re
     real(dot(prefac_Hs .* ψ1, ψ2))
 end
 
-function Hs_norm(basis_SC::PlaneWaveBasis, ψ, s=0)
+function Hs_norm(basis_SC::PlaneWaveBasis, ψ; s=0)
     square_norm = Hs_scalar_prod(basis_SC, ψ, ψ, s=s)
     @assert (square_norm ≥ 0) "negative Hs_norm, try raising ζ_min"
     sqrt(square_norm)
