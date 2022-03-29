@@ -33,9 +33,8 @@ function compress_graphene_pz_wannier(basis, Wn, α; s=0, # Choice of Hs norm.
                optim_method=ConjugateGradient(linesearch=BackTracking(order=3)),
                )
     # Initialise outer loop objects and parameters
-    converged = false; iter = zero(Int64);
-    Wn_proj = zero(Wn)
-    Res = copy(Wn)
+    converged = false
+    iter = zero(Int64); Wn_proj = zero(Wn); Res = copy(Wn);
     basis_SC = DFTK.cell_to_supercell(basis, touch_atoms=false)
     Wn_norm = Hs_norm(basis_SC, Wn, s=s)
 

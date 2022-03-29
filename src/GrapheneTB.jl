@@ -14,11 +14,11 @@ using WriteVTK
 export Hs_scalar_prod
 export Hs_overlap
 export Hs_projection_on_AO_basis
-export G_to_r_supercell
+export cell_to_supercell_vector
 include("common/Hs_scalar_prods.jl")
 include("common/utils.jl")
 include("common/read_data.jl")
-include("common/ifft_supercell.jl")
+include("common/supercell.jl")
 
 # SAGTOs
 export GaussianPolynomial
@@ -30,7 +30,7 @@ include("SAGTOs/SAGTOs_basis.jl")
 # SCF and Wannierization
 export scf_graphene
 export run_wannier90_graphene
-include("compute_graphene_wannier.jl")
+include("generate_bloch_and_wannier.jl")
 
 # Compression
 export find_D3_sym_axis
