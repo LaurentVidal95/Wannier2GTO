@@ -1,20 +1,3 @@
-using DFTK
-using Optim; using LineSearches
-using Printf
-
-"""
-Provides the angle between axis x and the first axis of the (x,y)-plane
-D3 symmetry of pz-like wannier functions.
-"""
-function find_D3_sym_axis(basis_SC::PlaneWaveBasis, W_pz, α0)
-    α(λ, θ) = polar_to_cartesian_coords(α0, λ, θ)
-    res = optimize(X->norm(W_pz .- s_orb(α(X[1],X[2]), X[3])(basis_SC)),
-                   [1., -1/2, 1/2], # Guess roughly close to wanted axis by experience.
-                   ConjugateGradient(linesearch=BackTracking(order=3)),
-                   Optim.Options(show_trace=true))
-    res.minimizer[2]
-end
-
 """
 Compress pz-like Wannier function of graphene (given as a Fourier coefficient table)
 on an optimized symmetry adapted AO basis.
@@ -32,6 +15,8 @@ function compress_graphene_pz_wannier(basis, Wn, α; s=0, # Choice of Hs norm.
                max_iter=100, thresh=1e-2, 
                optim_method=ConjugateGradient(linesearch=BackTracking(order=3)),
                )
+    @assert  size(Wn,2)==1 "Wn is to be given as a single supercell vector"
+
     # Initialise outer loop objects and parameters
     converged = false
     iter = zero(Int64); Wn_proj = zero(Wn); Res = copy(Wn);

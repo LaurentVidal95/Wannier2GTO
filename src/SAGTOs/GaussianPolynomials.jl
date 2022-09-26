@@ -7,7 +7,7 @@ import Base.+
 Polynom described as a linear combination of monoms
 """
 mutable struct PolynomialPart
-    exps::AbstractVector # Powers of the involved monoms
+    exps::AbstractVector   # Powers of the involved monoms
     coeffs::AbstractVector # Corresponding linear combinantion coefficients.
 end
 (pol::PolynomialPart)(X) = sum( prod(X .^ exps)*λ
@@ -43,12 +43,14 @@ end
 
 function GaussianPolynomial(exps, coeffs, α, ζ)
     g_hat(q) = exp(-(q^2)/(4ζ))
-    Χ_hat(q) = cis(-dot(q,α)) * ThreadsX.sum( λμ*prod( (im^nj)*∂n(y->g_hat(y), nj, qj)
-                                                       for (nj, qj) in zip(exp_μ, q) )
-                                              for (exp_μ, λμ) in zip(exps, coeffs) )
+    Χ_hat(q) = cis(-dot(q,α)) *
+        ThreadsX.sum( λμ * prod( (im^nj)*∂n(y->g_hat(y), nj, qj)
+                                 for (nj, qj) in zip(exp_μ, q) )
+                      for (exp_μ, λμ) in zip(exps, coeffs)
+                    )
     GaussianPolynomial(PolynomialPart(exps, coeffs), α, ζ, Χ_hat)
 end
-GaussianPolynomial(pol, α, ζ) = GaussianPolynomial(pol.exps, pol.coeffs, α, ζ)
+GaussianPolynomial(pol::PolynomialPart, α, ζ) = GaussianPolynomial(pol.exps, pol.coeffs, α, ζ)
 
 """
     Define sum for gaussians with same centers and spreads
@@ -76,8 +78,7 @@ end
 # Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
 # GaussianPolynomial using DFTK FFT routines.
 # """
-# function discrete_Bloch_transform(basis::PlaneWaveBasis, basis_SC::PlaneWaveBasis,
-#                                   Χ::GaussianPolynomial)
+# function discrete_Bloch_transform(basis_SC::PlaneWaveBasis, Χ::GaussianPolynomial)
 #     # Shift Χ to the center of the cell to avoid sampling issues
 #     shift = sum(ei ./ 2 for ei in eachcol(basis_SC.model.lattice)) .- Χ.α
 #     Χ_fourier = r_to_G(basis_SC, Χ.(collect(r_vectors_cart(basis_SC)) .- Ref(shift)))

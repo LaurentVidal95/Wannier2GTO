@@ -6,3 +6,5 @@ Here are some conventions of the code:
  - Wannier functions are to be projected on a basis of AOs, hence is ultimately described as a list of coefficient and corresponding Φs.
  - All scalar products are by default associated to the L2 norm. However any H^s norm can be chosen instead.
  - All functions (GTOs, AOs and Wannier) are stored by their Fourier coefficients in the plane-wave basis associated to scf computations that generated the Bloch waves. All operations utlimately acts on these arrays. If needed (e.g. for ploting) switching between real and Fourier space is done via FFT routines already implemented in DFTK (`G_to_r` and `r_to_G`)
+
+TODO: Actualize the code (and redo it better of course...)

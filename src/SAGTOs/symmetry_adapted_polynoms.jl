@@ -1,5 +1,5 @@
 """
-Routines to build an SAGTO adapted to the symmetries of "pz" - type Wannier of graphene.
+Routines to build an SAGTO adapted to the symmetries of pz-type Wannier functions of graphene.
     • If AOs are centered on the Wannier center, the chosen symmetry is D3 in the (x,y) plane.
     • In the other case, only the symmetry w.r. to the (x,y) and (x,z) planes are retained.
     (i.e. order 0 and 2 for xy orders)

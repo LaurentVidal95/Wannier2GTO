@@ -1,0 +1,2 @@
+doxygen Doxyfile
+sed 's/href=\"/href=\"html\//g' html/index.html | sed 's/src=\"/src=\"html\//g' > index.html

@@ -1,6 +1,7 @@
 using Pkg
-Pkg.activate("/home/lvidal/Documents/CERMICS/these/wannier_and_GTOs/graphene/GrapheneTB")
-using GrapheneTB
+Pkg.activate("/home/lvidal/Documents/CERMICS/these/"*
+             "wannier_and_GTOs/Wannier2GTO")
+using Wannier2GTO
 using Plots
 using DFTK
 
@@ -22,39 +23,48 @@ function DFTK.local_potential_fourier(el::ElementGaussian, q::Real)
 end
 
 DFTK.charge_nuclear(el::ElementGaussian) = el.Z
-nucleus = ElementGaussian(:X, 1.0, 0.5, 1)
+nucleus = ElementGaussian(:X, 1.0, 0.1, 1)
 
 ################ SCF and Wannierization
-function scf_1d_chain(b; n_atoms=2, n_bands=2,
-                   kgrid=[10,1,1], Ecut=500, fft_grid=[550,1,1],
-                   kshift=[0,0,0])
+function scf_1d_chain(; n_atoms=2, n_bands=2,
+                      kgrid=[5,1,1], Ecut=500, fft_grid=[550,1,1],
+                      kshift=[0,0,0])
     # lattice
-    lat = 10 .* [[1 0 0]; [0 b 0]; [0 0 b]];
+    lat = [[10 0 0]; [0 1 0]; [0 0 1]];
 
     # Atoms
-    atoms = [nucleus => [[0.5, 0, 0]]]
-    (n_atoms==2) && (atoms = [nucleus => [[0.2, 0, 0], [0.8, 0, 0]]])
+    atoms = [nucleus]
+    positions = [[0.5, 0, 0]]
+    (n_atoms==2) && (atoms = [nucleus, nucleus]; positions = [[0.2, 0, 0], [0.8, 0, 0]])
     
     # Model and basis
     terms = [Kinetic(), AtomicLocal()]
-    model = Model(lat, atoms=atoms, n_electrons=n_atoms,
+    model = Model(lat, atoms, positions; n_electrons=n_atoms,
                   terms=terms, spin_polarization=:spinless);
-    basis = PlaneWaveBasis(model, Ecut=Ecut, kgrid=kgrid, fft_size=fft_grid, kshift=kshift)
+    basis = PlaneWaveBasis(model, Ecut=Ecut, kgrid=kgrid,
+                           fft_size=fft_grid, kshift=kshift)
     self_consistent_field(basis, tol=1e-8, n_bands=n_bands, n_ep_extra=0);
 end
 
 using wannier90_jll
-function run_wannie90_1d_chain(scfres; prefix="w90_output/1d_chain")
+function run_wannier90_1d_chain(scfres; prefix="w90_output/1d_chain")
     atom_chain_wannierization_kwargs = (n_bands=2, n_wannier=2,
-                                      write_u_matrices=true,
-                                      skip_B1_tests=true, shell_list=1,
-                                      write_xyz=true)
+                                        write_u_matrices=true,
+                                        skip_B1_tests=true, shell_list=1,
+                                        write_xyz=true)
     DFTK.run_wannier90(scfres; atom_chain_wannierization_kwargs...)
 end
 
 ################### Tight Binding for 2D atom chain
+
+## BEWARE
+# !!!
+# First set w ./= √(num_k) to retrieve proper energies
+# !!!
+## BEWARE
+
 """
-Apply τ_R toa given function, periodic of the supercell.
+Apply τ_R to a given function, periodic of the supercell.
 """
 function τR_1D(basis_unfold, R, ψ::Vector{Matrix{T}}) where {T<:Complex}
     τ_ψ = []
@@ -66,9 +76,10 @@ function τR_1D(basis_unfold, R, ψ::Vector{Matrix{T}}) where {T<:Complex}
 end
 
 """
-Warning, w are to be normalized over the supercell before hand. Otherwise, divide result by √(num_k)
+Warning, w are to be normalized over the supercell before hand.
+Otherwise, divide result by √(num_k)
 """
-function tight_binding_ham(basis_unfold, ρ_unfold, w; R_neigh=[10,20,30,40])
+function tight_binding_ham(basis_unfold::PlaneWaveBasis, ρ_unfold, w; R_neigh=[10,20,30,40])
     ham = Hamiltonian(basis_unfold, ρ=ρ_unfold)
     # Extract both wannier at R=0
     extract_wn(w) = ([wk[:,1] for wk in w], [wk[:,2] for wk in w])
@@ -81,22 +92,21 @@ function tight_binding_ham(basis_unfold, ρ_unfold, w; R_neigh=[10,20,30,40])
     [w1_R'*(ham*w2_R) for w1_R in Wn_R_list, w2_R in Wn_R_list]
 end
 
-tight_binding_ham(scfres_unfold, R_neigh, w)= H_RR(scfres_unfold.basis, scfres_unfold.ρ, R_neigh, w)
+tight_binding_ham(scfres_unfold, R_neigh, w)= H_RR(scfres_unfold.basis,
+                                                   scfres_unfold.ρ, R_neigh, w)
 
-################## Finding back H_k
 """
 2×2 matrix s.t. [H_R]_μν = ⟨W_μ0 | H | W_νR⟩
 """
 function H_R(ham_unfold::Hamiltonian, w, R)
     w_R = τR_1D(ham_unfold.basis, R, w)
-    w_R'*(ham*w)
+    w'*(ham_unfold*w_R)
 end
 
 """
 Recover H(k) by Bloch transform of all H_R
 """
-function Hk_tight_binding(k, ham_unfold, w, R1, R2; R_neigh=[10,20,30,40])
+function Hk_tight_binding(k, ham_unfold, w; R_neigh=[0,10,20,30,40])
     HR_list = H_R.(Ref(ham_unfold), Ref(w), R_neigh)
-    dists(R) = .- [dot(k, R + Ra - Rb) for Ra in [R1,R2], Rb in  [R1,R2]]
-    sum(HR .* cis.(dists(R)) for (HR, R) in zip(HR_list, R_neigh))
+    sum(HR .* cis(-k'*[R,0,0]) for (HR, R) in zip(HR_list, R_neigh))
 end

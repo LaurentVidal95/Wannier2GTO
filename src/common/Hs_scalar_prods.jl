@@ -1,5 +1,3 @@
-using DFTK
-
 """
 Computes the Hs scalar product of two vectors containing all (k+G) Fourier coefficients.
 In DFTK conventions, these vectors are Bloch wave of the supercell Gamma point.
