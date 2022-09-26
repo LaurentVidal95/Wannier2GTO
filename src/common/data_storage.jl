@@ -14,7 +14,7 @@ function store_wannier_functions(Wn::AbstractArray, αn::Vector{T}, θn::T,
     !(norm(Wn) ≈ 1) && (@warn "Provided Wannier is not normalized")
     # Convert wanniers to complex JSON
     Wn_dict = Dict{String, Any}()
-    Wn_dict["wannier"] = Wn
+    Wn_dict["wannier"] = JCX.(Wn)
     Wn_dict["center"] = αn
     Wn_dict["D3_sym_angle"] = θn
     open(io->JSON3.write(io, Wn_dict, allow_inf=true), prefix*".json", "w")
@@ -22,11 +22,11 @@ function store_wannier_functions(Wn::AbstractArray, αn::Vector{T}, θn::T,
 end
 
 function extract_wannier_functions(filename::String)
-    wn_json = open(JSON3.read, filename)
+    data = open(JSON3.read, filename)
     JCX_to_complex(x) = x.real .+ im*x.imaginary
-    wn = [JCX_to_complex.(wn_json[k]) for k in 1:length(wn_json)-2]
-    αn = Float64.(wn_json[-1])
-    θn = Float64(wn_json[0])
+    wn = JCX_to_complex.(data["wannier"])
+    αn = Float64.(data["center"])
+    θn = Float64(data["D3_sym_angle"])
     !(norm(wn) ≈ 1) && @warn "The wannier function is not normalized"
     wn, αn, θn
 end

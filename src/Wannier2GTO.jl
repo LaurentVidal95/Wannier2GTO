@@ -18,11 +18,13 @@ export cell_to_supercell_vector
 export extract_wannier_functions
 export JCX
 export store_wannier_functions
+export find_D3_sym_axis
 include("common/Hs_scalar_prods.jl")
 include("common/utils.jl")
 include("common/data_storage.jl")
 include("common/extract_wannier_functions.jl")
 include("common/supercell.jl")
+include("common/callback_info.jl")
 
 # SAGTOs
 export GaussianPolynomial
@@ -32,7 +34,7 @@ include("SAGTOs/symmetry_adapted_polynoms.jl")
 include("SAGTOs/SAGTOs_basis.jl")
 
 # Compression
-export find_D3_sym_axis
+export compress_graphene_pz_wannier
 include("compression_routines/cost_function.jl")
 include("compression_routines/compression.jl")
     

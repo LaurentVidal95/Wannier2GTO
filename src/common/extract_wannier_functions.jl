@@ -49,3 +49,9 @@ function extract_wannier_functions(prefix::String, scfres::NamedTuple)
     # Construct Wannier functions
     apply_U_matrices("$(prefix)_u.mat", ψ_unfold)
 end
+
+function convert_wannier_to_supercell(Wn, basis, basis_SC)
+    !(norm(Wn) ≈ 1) && @warn "The given wannier is not normalized"
+    Wn_SC = cell_to_supercell(Wn, DFTK.unfold_bz(basis), basis_SC)
+    sum(eachcol(Wn_SC))
+end
