@@ -5,11 +5,6 @@ Scf and wannierization routine for Graphene
 using DFTK
 using wannier90_jll
 
-struct System{F}
-    scf::F
-    wannierize::F
-end
-
 function Graphene(; n_bands=10, kgrid=[8,8,1], Ecut=15, kshift=zeros(Float64, 3))
     function scf(; n_bands=n_bands, kgrid=kgrid, Ecut=Ecut, kshift=kshift, kwargs...)
         # Lattice
@@ -27,14 +22,14 @@ function Graphene(; n_bands=10, kgrid=[8,8,1], Ecut=15, kshift=zeros(Float64, 3)
         
         model = model_PBE(lattice, atoms, positions)
         basis = PlaneWaveBasis(model; Ecut, kgrid, kshift)
-        self_consistent_field(basis, n_bands, kwargs...);
+        self_consistent_field(basis; n_bands, kwargs...);
     end
 
     function wannierize(scfres; prefix="w90_output/graphene", plot_wannier=false)
         kwargs = (fileprefix=prefix,
                   n_bands=13, n_wannier=5,
                   # Data to recover Wannier as tensor in julia
-                  length_unit="Bohr"
+                  length_unit="Bohr", # Important to have proper wannier center
                   write_u_matrices=".TRUE.",
                   write_xyz=".TRUE.",
                   # Disentanglement
@@ -43,6 +38,6 @@ function Graphene(; n_bands=10, kgrid=[8,8,1], Ecut=15, kshift=zeros(Float64, 3)
         (plot_wannier) && (kwargs = merge(kwargs, (; wannier_plot=true, wannier_plot_supercell=4)))
         run_wannier90(scfres; kwargs...)
     end
-    System(scf, wannierize)
+    (;scf, wannierize)
 end
 

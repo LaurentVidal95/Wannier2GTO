@@ -19,16 +19,10 @@ dist_Hs(basis_SC::PlaneWaveBasis, ψ1, ψ2; s=0) = Hs_norm(basis_SC, ψ1 .- ψ2,
 
 function Hs_overlap(basis_SC::PlaneWaveBasis, Χs_fourier; s=0)
     num_aos = length(Χs_fourier)
-    S = zeros(Float64, num_aos, num_aos)
+    # S = zeros(Float64, num_aos, num_aos)
     # Run over all GTOs and compute overlaps
-    for μ in 1:num_aos
-        for ν in μ:num_aos
-            S[μ,ν] = Hs_scalar_prod(basis_SC, Χs_fourier[μ], Χs_fourier[ν], s=s)
-            # Symmetrize
-            (μ≠ν) && (S[ν,μ] = S[μ,ν])
-        end
-    end
-    S
+    [Hs_scalar_prod(basis_SC, Χs_fourier[μ], Χs_fourier[ν]; s)
+     for μ in 1:num_aos, ν in 1:num_aos]
 end
 
 @doc raw"""
@@ -37,17 +31,18 @@ end
     of fourier coefficients of ``Χμ`` at frequency ``k+Gs``.
     Kwarg ``s`` is the choice of Hs norm for the projection.
 """
-function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ, Χs; s=0)
+function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
+                                   Χs::Vector{Vector{ComplexF64}}; s=0)
     # Check that Ψ and all AOs have been converted to supercell conventions
     num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))
     @assert( (length(ψ)==num_kpG) && (length(Χs[1])==num_kpG) )
 
     # Compute the coefficients of the projection
-    S = Hs_overlap(basis_SC, Χs, s=s)
-    Χ = [Hs_scalar_prod(basis_SC, ψ, Χμ, s=s) for Χμ in Χs]
+    S = Hs_overlap(basis_SC, Χs; s)
+    Χ = [Hs_scalar_prod(basis_SC, ψ, Χμ; s) for Χμ in Χs]
     # Check for conditioning issues before inverting
-    (cond(S) > 1e15) && (@warn "cond(S)>1e15"; return nothing, nothing)
+    (cond(S) > 1e15) && (@error "cond(S)>1e15")
     C_opti = (Symmetric(S)\Χ)
     # Assemble projection in Fourier and normalize
-    sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), C_opti
+    (; func=sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), coeffs=C_opti)
 end

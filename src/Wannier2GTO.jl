@@ -14,10 +14,10 @@ using WriteVTK
 export Hs_scalar_prod
 export Hs_overlap
 export Hs_projection_on_AO_basis
+export Hs_norm
 export cell_to_supercell_vector
-export extract_wannier_functions
-export JCX
-export store_wannier_functions
+export extract_wannier_function
+export store_wannier_function
 export find_D3_sym_axis
 include("common/Hs_scalar_prods.jl")
 include("common/utils.jl")
@@ -35,7 +35,7 @@ include("SAGTOs/SAGTOs_basis.jl")
 
 # Compression
 export compress_graphene_pz_wannier
-include("compression_routines/cost_function.jl")
+include("compression_routines/inner_optimization.jl")
 include("compression_routines/compression.jl")
     
 end # module

@@ -1,14 +1,18 @@
 @doc raw"""
 Construct one s orbital of center ``α`` and spread ``ζ``.
 """
-s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
+@inline s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
 
 @doc raw"""
 Matrix of the rotation of angle ``θ`` around ``[0,0]`` in the (x,y)-plane
 """
-rot(θ) = [cos(θ) -sin(θ) 0; sin(θ) cos(θ) 0; 0 0 1]
+@inline function rot(θ::T) where {T<:Real}
+    [cos(θ) -sin(θ) 0; sin(θ) cos(θ) 0; 0 0 1]
+end
 
-polar_to_cartesian_coords(origin, λ, θ) = origin .+ λ .*(rot(θ)*[1.; 1.; 0])
+@inline function polar_to_cartesian_coords(origin, r::T, θ::T) where {T<:Real}
+    origin + r*(rot(θ)*[1.; 1.; 0.])
+end
 
 """
 Provides the angle between axis x and the first axis of the (x,y)-plane

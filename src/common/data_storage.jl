@@ -7,7 +7,7 @@ struct JCX
 end
 JCX(x) = JCX(reim(x)...)
 
-function store_wannier_functions(Wn::AbstractArray, αn::Vector{T}, θn::T,
+function store_wannier_function(Wn::Vector{ComplexF64}, αn::Vector{T}, θn::T,
                                  prefix::String) where {T<:Real}
     @assert size(Wn,2)==1  "Wn is to be given as a single supercell vector"
     # Check if Ws are unitary
@@ -21,7 +21,7 @@ function store_wannier_functions(Wn::AbstractArray, αn::Vector{T}, θn::T,
     nothing
 end
 
-function extract_wannier_functions(filename::String)
+function extract_wannier_function(filename::String)
     data = open(JSON3.read, filename)
     JCX_to_complex(x) = x.real .+ im*x.imaginary
     wn = JCX_to_complex.(data["wannier"])
@@ -43,14 +43,4 @@ function write_wannier_vtk(wn, basis::PlaneWaveBasis, prefix::String;
         vtk["wannier"] = wn_real
     end
     nothing
-end
-
-# TODO: USE JSON3 INSTEAD
-# Extract stored data
-function read_wannier_dir(dir)
-    readdlm_complex(file) = readdlm(file, Float64) |> x -> Complex.(x[:,1], x[:,2])
-    wn = [readdlm_complex(joinpath(dir,"wn_$(k).dat")) for k in 1:64];
-    αn = vec(readdlm(joinpath(dir,"wn_center.dat")))
-    θn = only(readdlm(joinpath(dir,"wn_blob_angle.dat")))
-    wn, αn, θn
 end
