@@ -7,7 +7,7 @@ struct JCX
 end
 JCX(x) = JCX(reim(x)...)
 
-function store_wannier_function(Wn::Vector{ComplexF64}, αn::Vector{T}, θn::T,
+function store_wannier_function(Wn::Vector{ComplexF64}, αn::Vector{T}, rn::T, θn::T,
                                  prefix::String) where {T<:Real}
     @assert size(Wn,2)==1  "Wn is to be given as a single supercell vector"
     # Check if Ws are unitary
@@ -16,25 +16,25 @@ function store_wannier_function(Wn::Vector{ComplexF64}, αn::Vector{T}, θn::T,
     Wn_dict = Dict{String, Any}()
     Wn_dict["wannier"] = JCX.(Wn)
     Wn_dict["center"] = αn
-    Wn_dict["D3_sym_angle"] = θn
+    Wn_dict["blob"] = [rn, θn]
     open(io->JSON3.write(io, Wn_dict, allow_inf=true), prefix*".json", "w")
     nothing
 end
 
-function extract_wannier_function(filename::String)
+function read_wannier_function(filename::String)
     data = open(JSON3.read, filename)
     JCX_to_complex(x) = x.real .+ im*x.imaginary
     wn = JCX_to_complex.(data["wannier"])
     αn = Float64.(data["center"])
-    θn = Float64(data["D3_sym_angle"])
+    rn, θn = Float64(data["blob"])
     !(norm(wn) ≈ 1) && @warn "The wannier function is not normalized"
-    wn, αn, θn
+    wn, αn, rn, θn
 end
 
 function write_wannier_vtk(wn, basis::PlaneWaveBasis, prefix::String;
                            basis_SC=cell_to_supercell(basis))
     wn_SC = cell_to_supercell(wn, DFTK.unfold_bz(basis), basis_SC)
-    wn_real = real.(iff(basis_SC, only(basis_SC.kpoints), sum(eachcol(wn_SC))))
+    wn_real = real.(ifft(basis_SC, only(basis_SC.kpoints), sum(eachcol(wn_SC))))
     r_cart = map(r->basis_SC.model.lattice*r, basis_SC.r_vectors)
     x = [r[1] for r in r_cart]
     y = [r[2] for r in r_cart]

@@ -3,7 +3,7 @@ Compress pz-like Wannier function of graphene (given as a Fourier coefficient ta
 on an optimized symmetry adapted AO basis.
 The basis is constructed by greedy iterations described in Ref[].
 """
-function compress_graphene_pz_wannier(basis, Wn, α0, D3_sym_angle;
+function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
                   basis_SC = DFTK.cell_to_supercell(basis),
                   s=0, # Choice of Hs scalar product
                   res_init = Wn,  # Initial residual for restarts
@@ -46,7 +46,7 @@ function compress_graphene_pz_wannier(basis, Wn, α0, D3_sym_angle;
     # in_linesearch=false returns J AND the coefficients obtained by solving the least square
     # problem in J.
     function f(X; D3_sym=true, in_linesearch=true)
-        X[1:2] = D3_sym ? zeros(2) : vcat(X[1], D3_sym_angle)
+        X[1:2] = D3_sym ? zeros(2) : vcat(X[1], θ)
         inner_optimization(info, α0, X[1], X[2], X[3:end]; in_linesearch)
     end
 
@@ -55,8 +55,8 @@ function compress_graphene_pz_wannier(basis, Wn, α0, D3_sym_angle;
 
         # Inner optimization: find new optimal MO
         N_AOs = prod(length.(pol_orders)) # Number of AOs
-        res = optimize(X -> f(X; D3_sym), ones(N_AOs+2), optim_method, optim_options,
-                       autodiff=:forward)
+        res = optimize(X -> f(X; D3_sym), vcat([r, θ], ones(N_AOs)),
+                       optim_method, optim_options, autodiff=:forward)
         info, J, Λ, α = f(res.minimizer, in_linesearch=false)
         ζs = res.minimizer[3:end]
 
