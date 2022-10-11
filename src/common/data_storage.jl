@@ -26,7 +26,7 @@ function read_wannier_function(filename::String)
     JCX_to_complex(x) = x.real .+ im*x.imaginary
     wn = JCX_to_complex.(data["wannier"])
     αn = Float64.(data["center"])
-    rn, θn = Float64(data["blob"])
+    rn, θn = Float64.(data["blob"])
     !(norm(wn) ≈ 1) && @warn "The wannier function is not normalized"
     wn, αn, rn, θn
 end

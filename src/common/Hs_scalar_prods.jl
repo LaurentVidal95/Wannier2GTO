@@ -41,7 +41,7 @@ function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
     S = Hs_overlap(basis_SC, Χs; s)
     Χ = [Hs_scalar_prod(basis_SC, ψ, Χμ; s) for Χμ in Χs]
     # Check for conditioning issues before inverting
-    (cond(S) > 1e15) && (@error "cond(S)>1e15")
+    (cond(S) > 1e15) && (error("cond(S)>1e15"))
     C_opti = (Symmetric(S)\Χ)
     # Assemble projection in Fourier and normalize
     (; func=sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), coeffs=C_opti)

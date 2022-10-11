@@ -41,8 +41,7 @@ function inner_optimization(info,
     # Actualize info for outer J! computation
     info = merge(info, (; Φ=Φ_opti))
     
-    
     # Return only J (for Optim routine) or J and coefficient (for storage)
-    !(in_linesearch) && (return info, dist_Hs(basis_SC, Φ_opti, res, s=s), λ_opti, αΦ)
-    dist_Hs(basis_SC, Φ_opti, res, s=s)
+    !(in_linesearch) && (return info, dist_Hs(basis_SC, Φ_opti, res, s=s)^2, λ_opti, αΦ)
+    dist_Hs(basis_SC, Φ_opti, res, s=s)^2
 end

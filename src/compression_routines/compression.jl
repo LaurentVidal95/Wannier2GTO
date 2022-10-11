@@ -17,7 +17,7 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
                   max_iter=20,
                   tol=1e-2,
                   optim_method=ConjugateGradient(linesearch=BackTracking(order=3)),
-                  optim_options=Optim.Options(g_abstol=1e-1, show_trace=true),
+                  optim_options=Optim.Options(g_abstol=1e-5, show_trace=true),
                   )
 
     @assert  size(Wn,2)==1 "Wn is to be given as a single supercell vector"
@@ -53,16 +53,18 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
     while ( (info.n_iter < max_iter) && !info.converged )
         n_iter += 1;
 
+        Φs = info.Φs
+        
         # Inner optimization: find new optimal MO
         N_AOs = prod(length.(pol_orders)) # Number of AOs
         res = optimize(X -> f(X; D3_sym), vcat([r, θ], ones(N_AOs)),
                        optim_method, optim_options, autodiff=:forward)
-        info, J, Λ, α = f(res.minimizer, in_linesearch=false)
+        info, J, Λ, α = f(res.minimizer; D3_sym, in_linesearch=false)
         ζs = res.minimizer[3:end]
 
         # Add new MO to the MO basis and project Wn
         # Compute new res and check CV
-        Φs = push!(info.Φs, info.Φ)
+        push!(Φs, info.Φ)
         Wn_proj = Hs_projection_on_AO_basis(basis_SC, Wn, Φs; s)
         res = Wn .- Wn_proj.func
         res_norm = Hs_norm(basis_SC, res; s) / Wn_norm

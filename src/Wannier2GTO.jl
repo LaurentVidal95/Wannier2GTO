@@ -18,6 +18,7 @@ export Hs_norm
 export cell_to_supercell_vector
 export extract_wannier_function
 export store_wannier_function
+export read_wannier_function
 export find_D3_sym_axis
 include("common/Hs_scalar_prods.jl")
 include("common/utils.jl")
