@@ -33,6 +33,8 @@ end
 """
 function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
                                    Χs::Vector{Vector{ComplexF64}}; s=0)
+    Xs = normalize.(Xs) # renormalize AOs to avoid super big or small coeffs
+
     # Check that Ψ and all AOs have been converted to supercell conventions
     num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))
     @assert( (length(ψ)==num_kpG) && (length(Χs[1])==num_kpG) )
@@ -40,9 +42,9 @@ function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
     # Compute the coefficients of the projection
     S = Hs_overlap(basis_SC, Χs; s)
     Χ = [Hs_scalar_prod(basis_SC, ψ, Χμ; s) for Χμ in Χs]
-    # Check for conditioning issues before inverting
-    (cond(S) > 1e15) && (error("cond(S)>1e15"))
+    # Check for conditioning issues before inverting and stop if conditioning is to high
+    (cond(S) > 1e8) && (error("cond(S)>1e8"))
     C_opti = (Symmetric(S)\Χ)
-    # Assemble projection in Fourier and normalize
+    # Assemble projection in Fourier
     (; func=sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), coeffs=C_opti)
 end

@@ -15,8 +15,8 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
                   ## Inner loop parameters
                   ζ_min=1e-3,     # Minimal possible spread to avoid NAN
                   max_iter=20,
-                  tol=1e-2,
-                  optim_method=ConjugateGradient(linesearch=BackTracking(order=3)),
+                  tol=1e-2, # maximum attaigned for now is ≈ 5%
+                  optim_method=ConjugateGradient(),
                   optim_options=Optim.Options(g_abstol=1e-5, show_trace=true),
                   )
 

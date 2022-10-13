@@ -38,5 +38,8 @@ include("SAGTOs/SAGTOs_basis.jl")
 export compress_graphene_pz_wannier
 include("compression_routines/inner_optimization.jl")
 include("compression_routines/compression.jl")
-    
+
+# Tight-binding
+include("tight_binding/TB_ham.jl")
+
 end # module

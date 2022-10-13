@@ -1,3 +1,5 @@
+using ProgressMeter
+
 """
 Allow to store complex numbers with JSON3
 """
@@ -43,4 +45,30 @@ function write_wannier_vtk(wn, basis::PlaneWaveBasis, prefix::String;
         vtk["wannier"] = wn_real
     end
     nothing
+end
+
+function read_compressed_wannier(basis_SC, filename::String)
+    data = open(JSON3.read, filename)
+    # Extract proj coeffs
+    proj_coeffs = Float64.(data[0])
+    N_SAGTOs = length(proj_coeffs)
+    p = Progress(N_SAGTOs, desc="Assembling compressed Wannier")
+    # Extract all MOs
+    Φs = map(1:N_SAGTOs) do i
+        Λs, αs, ζs, pol_orders = data[i]
+        next!(p) # progress bar
+        assemble_MO(basis_SC, Λs, αs, ζs, pol_orders...)
+    end
+    proj_coeffs'Φs
+end
+
+function assemble_MO(basis_SC, Λ, αs, ζs, xy_orders, z_orders)
+    # JSON type -> Float64
+    Λ = Float64.(Λ)
+    αs = [Float64.(α) for α in αs]
+    ζs = Float64.(ζs)
+
+    # Assemble MO
+    AOs = vcat(SAGTOs_basis.(αs, Ref(ζs), Ref(xy_orders), Ref(z_orders))...)
+    Λ'ThreadsX.map(X->X(basis_SC), AOs)
 end

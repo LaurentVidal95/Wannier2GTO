@@ -6,7 +6,7 @@ function default_callback()
             flush(stdout)
         else
             output = [info.n_iter, info.J, info.res_norm]
-            println(@sprintf("%5i %16.12f %16.12f \n", output...))
+            println(@sprintf("%5i %16.12f %16.12f", output...))
             flush(stdout)
         end
         nothing
