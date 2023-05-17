@@ -1,7 +1,7 @@
 """
 Computes the Hs scalar product of two vectors containing all (k+G) Fourier coefficients.
 In DFTK conventions, these vectors are Bloch wave of the supercell Gamma point.
-Conversion from cell to supercell is hence needed
+Conversion from cell to supercell is hence needed beforehand.
 """
 function Hs_scalar_prod(basis_SC::PlaneWaveBasis{T}, ψ1, ψ2; s=0) where {T<:Real}
     prefac_Hs = [(1+norm(kpG)^2)^s
@@ -19,7 +19,6 @@ dist_Hs(basis_SC::PlaneWaveBasis, ψ1, ψ2; s=0) = Hs_norm(basis_SC, ψ1 .- ψ2,
 
 function Hs_overlap(basis_SC::PlaneWaveBasis, Χs_fourier; s=0)
     num_aos = length(Χs_fourier)
-    # S = zeros(Float64, num_aos, num_aos)
     # Run over all GTOs and compute overlaps
     [Hs_scalar_prod(basis_SC, Χs_fourier[μ], Χs_fourier[ν]; s)
      for μ in 1:num_aos, ν in 1:num_aos]

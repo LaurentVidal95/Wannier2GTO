@@ -29,13 +29,13 @@ function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
         f = DFTK.scdm_f_erfc(basis, eigenvalues, μ, σ)
         n_wann = 5
         A = DFTK.compute_amn_scdm(basis, ψ, n_wann, f)
-        wann_model, _ = run_wannier(
+        wann_model = only(run_wannier(
             scfres;
             fileprefix=prefix,
             n_wann,
             A,
             dis_froz_max=0.1,
-        );
+        ));
     end
     (;scf, wannierize)
 end

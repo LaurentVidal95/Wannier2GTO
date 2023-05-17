@@ -3,9 +3,9 @@ using ThreadsX
 
 import Base.+
     
-#
-#Polynom described as a linear combination of monoms
-#
+"""
+Polynom described as a linear combination of monoms
+"""
 struct PolynomialPart{T<:Real}
     exps::Vector{Tuple{Int64, Int64, Int64}}   # Powers of the involved monoms
     coeffs::Vector{T} # Corresponding linear combinantion coefficients.
@@ -13,27 +13,32 @@ end
 (pol::PolynomialPart)(X) = sum( prod(X .^ exps)*λ
                                for (exps, λ) in zip(pol.exps, pol.coeffs) )
 
+"""
+Contains all parameters to describe a gaussian-polynomial g such that:
+``g(x) = ( ∑_{(n_x,n_z,n_z)} λ_{(n_x,n_y,n_z)}x^{n_x}y^{n_y}z^{n_z} ) 
+                                * exp(-ζ*norm([x,y,z] - α)^2)``
+Parameters are:
+   • ``pol.exps = [(n_x,n_y,n_z) ... ]`` contains all 3 polynomials powers ``(n_x,n_y,n_z)``
+   • ``pol.coeffs = [λ_{(n_x,n_y,n_z)}, ∀(n_x,n_y,n_z) ∈ pol_exps]``
+   • ``ζ`` is the spread of the gaussian part
+   • ``center = [α_x, α_y, α_z]`` in cartesian coordinates
 
-#Contains all parameters to describe a gaussian-polynomial g such that:
-#``g(x) = ( ∑_{(n_x,n_z,n_z)} λ_{(n_x,n_y,n_z)}x^{n_x}y^{n_y}z^{n_z} ) 
-#                                * exp(-ζ*norm([x,y,z] - α)^2)``
-#Parameters are:
-#   • ``pol.exps = [(n_x,n_y,n_z) ... ]`` contains all 3 polynomials powers ``(n_x,n_y,n_z)``
-#   • ``pol.coeffs = [λ_{(n_x,n_y,n_z)}, ∀(n_x,n_y,n_z) ∈ pol_exps]``
-#   • ``ζ`` is the spread of the gaussian part
-#   • ``α = [α_x, α_y, α_z]`` in cartesian coordinates
-#
-# Types are specific for each parameter to be compatible with Forward Diff
-#
+ Types are specific for each parameter to be compatible with Forward Diff
+
+"""
 struct GaussianPolynomial{T1<:Real, T2<:Real, T3<:Real, F<:Function}
     pol::PolynomialPart{T1}
-    α::Vector{T2}
+    center::Vector{T2}
     ζ::T3
     Fourier_transform::F
 end
-(Χ::GaussianPolynomial)(R)= Χ.pol(R .- Χ.α) * exp(-Χ.ζ*norm(R .- Χ.α)^2)
-F(Χ::GaussianPolynomial, x)= Χ.Fourier_transform(x)
+(Χ::GaussianPolynomial)(R)= Χ.pol(R .- Χ.center) * exp(-Χ.ζ*norm(R .- Χ.center)^2)
+ℱ(Χ::GaussianPolynomial, x)= Χ.Fourier_transform(x)
 
+"""
+Very crude implementation of Fourier transform of Gaussian polynomials
+using auto-diffenrentiation
+"""
 function ∂n(h::F, n::Int64, x::T) where {T<:Real, F<:Function}
     (n==0) && (return h(x))
     (n==1) && (return ForwardDiff.derivative(h, x))
@@ -55,16 +60,17 @@ GaussianPolynomial(pol::PolynomialPart, α, ζ) = GaussianPolynomial(pol.exps, p
 """
 Evaluate Χ at all k+G vectors given a basis and returns in supercell convention
 (i.e. single vector containing all k+G coefficient in order given by
-G_vectors(basis_supercell, basis_supercell.Γ_point))
+G_vectors_cart(basis_supercell, basis_supercell.Γ_point))
 """
 function discrete_Bloch_transform(basis_SC::PlaneWaveBasis, Χ::GaussianPolynomial)
-    Χ_fourier = F.(Ref(Χ), G_vectors_cart(basis_SC, only(basis_SC.kpoints)))
+    Χ_fourier = ℱ.(Ref(Χ), G_vectors_cart(basis_SC, only(basis_SC.kpoints)))
     Χ_fourier ./ norm(Χ_fourier)
 end
 
 # """
 # Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
-# GaussianPolynomial using DFTK FFT routines.
+# GaussianPolynomial using DFTK FFT routines. For now very slow somehow...
+# Maybe because of the convert part.
 # """
 # function discrete_Bloch_transform(basis_SC::PlaneWaveBasis{T}, X::GaussianPolynomial{T, T2}) where {T<:Real, T2}
 #     # Shift X to the center of the cell to avoid sampling issues
@@ -79,14 +85,4 @@ end
 #     X_fourier .*= cis.(dot.(G_cart, Ref(shift)))
 
 #     X_fourier ./ norm(X_fourier)
-# end
-
-# """
-#     Define sum for gaussians with same centers and spreads
-#     PB: Takes more time than summing directly tables of Fourier coefficients
-# """
-# function (+)(Χ1::GaussianPolynomial, Χ2::GaussianPolynomial)
-#     @assert ((Χ1.α == Χ2.α) &&
-#              (Χ1.ζ == Χ2.ζ)) "Only sum over gaussians with same centers and spreads."
-#     GaussianPolynomial(Χ1.pol + Χ2.pol, Χ1.α, Χ1.ζ, F(Χ1) + F(Χ2))
 # end
