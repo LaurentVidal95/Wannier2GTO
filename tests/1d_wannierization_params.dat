@@ -1,6 +1,0 @@
-prefix = run_wannier90(scfres,
-           n_bands=1, n_wannier=1,
-           write_u_matrices=true,
-           skip_B1_tests=true,
-           shell_list=1,
-           write_xyz=true)

@@ -26,10 +26,10 @@ function Hs_overlap(basis_SC::PlaneWaveBasis, Χs_fourier; s=0)
 end
 
 @doc raw"""
-    Compute projection on a given AO basis ``Χs``. Format:
-    ``Χs = [Χ1, ... , Χ_Nb]`` where each ``Χμ`` is a vector ``Χμ[k+G]``
-    of fourier coefficients of ``Χμ`` at frequency ``k+Gs``.
-    Kwarg ``s`` is the choice of Hs norm for the projection.
+Compute projection on a given AO basis ``Χs``. Format:
+``Χs = [Χ1, ... , Χ_Nb]`` where each ``Χμ`` is a vector ``Χμ[k+G]``
+of fourier coefficients of ``Χμ`` at frequency ``k+Gs``.
+Kwarg ``s`` is the choice of Hs norm for the projection.
 """
 function Hs_projection_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
                                    Χs::Vector{Vector{ComplexF64}}; s=0)
