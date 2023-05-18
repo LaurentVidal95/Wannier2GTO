@@ -22,7 +22,7 @@ function inner_optimization(info,
     Χs = SAGTOs_basis(basis_SC, α(r, θ), ζs, xy_orders, z_orders)
     
     # Compute λ_opti s.t. Φ = ∑λ_opti_μ*Χμ ∈ argmin λ -> J(ζ, λ, res)
-    Γ = ThreadsX.map(Χ -> Hs_scalar_prod(basis_SC, info.res, Χ; s), Χs)
+    Γ = ThreadsX.map(Χ -> Hs_dot(basis_SC, info.res, Χ; s), Χs)
     S = Hs_overlap(basis_SC, Χs; s)
     λ_opti = (Symmetric(S)\Γ)
     
@@ -43,5 +43,5 @@ function inner_optimization(info,
     
     # Return only J (for Optim routine) or J and coefficient (for storage)
     !(in_linesearch) && (return info, dist_Hs(basis_SC, Φ_opti, res, s=s)^2, λ_opti, αΦ)
-    dist_Hs(basis_SC, Φ_opti, res, s=s)^2
+    Hs_norm(basis_SC, Φ_opti .- res, s=s)^2
 end

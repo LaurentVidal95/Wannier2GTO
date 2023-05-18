@@ -10,27 +10,28 @@ function safereal(tab; tol=1e-10)
     error("Non negligeable imaginary part")
 end
 
-function Hs_dot(basis_SC::PlaneWaveBasis{T}, ψ1, ψ2; s=0, tol=1e-10) where {T<:Real}
+function Hs_dot(basis_SC::PlaneWaveBasis, ψ1::AbstractVector{T1},
+                ψ2::AbstractVector{T2}; s=0) where {T1, T2<:Complex}
     # Handle L² norm case
-    s==0 && return safereal(dot(ψ1, ψ2); tol)
+    s==0 && return dot(ψ1, ψ2)
     # s ≥ 1
     prefac_Hs = [(1+norm(Gpk)^2)^s
                  for Gpk in G_vectors_cart(basis_SC, only(basis_SC.kpoints))]
-    safereal(dot(prefac_Hs .* ψ1, ψ2); tol)
+    dot(prefac_Hs .* ψ1, ψ2)
 end
 
-function Hs_norm(basis_SC::PlaneWaveBasis, ψ; s=0)
-    square_norm = HS_dot(basis_SC, ψ, ψ; s)
+function Hs_norm(basis_SC::PlaneWaveBasis, ψ; s=0, tol=1e-10)
+    square_norm = safereal(Hs_dot(basis_SC, ψ, ψ; s); tol)
     @assert (square_norm ≥ 0) "negative Hs_norm, try raising minimal spread ζ_min"
     sqrt(square_norm)
 end
 
-function Hs_overlap(basis_SC::PlaneWaveBasis, Χs_fourier; s=0)
-    num_aos = length(Χs_fourier)
-    S = zeros(eltype(basis_SC), num_aos, num_aos)
+function Hs_overlap(basis_SC::PlaneWaveBasis, Xs_fourier; s=0)
+    num_aos = length(Xs_fourier)
+    S = zeros(eltype(Xs_fourier[1]), num_aos, num_aos)
     for μ in 1:num_aos
         for ν in μ:num_aos
-            S[μ, ν] = Hs_dot(basis_SC, Χs_fourier[μ], Χs_fourier[ν]; s)
+            S[μ, ν] = Hs_dot(basis_SC, Xs_fourier[μ], Xs_fourier[ν]; s)
             (μ≠ν) && (S[ν, μ] = S[μ, ν])
         end
     end

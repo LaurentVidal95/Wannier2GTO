@@ -3,9 +3,12 @@ Compress pz-like Wannier function of graphene (given as a Fourier coefficient ta
 on an optimized symmetry adapted AO basis.
 The basis is constructed by greedy iterations described in Ref[].
 """
-function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
-                  basis_SC = DFTK.cell_to_supercell(basis),
-                  s=0, # Choice of Hs scalar product
+function compress_graphene_pz_wannier(basis_SC::PlaneWaveBasis{TR},
+                  Wn::AbstractArray{TC},
+                  wannier_center::AbstractVector{TR},
+                  π_bond_axis;
+                  ### Kwargs ...
+                  s=0,            # Choice of Hs scalar product
                   res_init = Wn,  # Initial residual for restarts
                   prefix="compressed_wannier",
                   callback=default_callback(),
@@ -14,13 +17,13 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
                   max_z_order=3,  # Maximal order in z axis for the SAGTO polynomial
                   ## Inner loop parameters
                   ζ_min=1e-3,     # Minimal possible spread to avoid NAN
-                  max_iter=20,
-                  tol=1e-2, # maximum attaigned for now is ≈ 5%
+                  max_iter=20,    # Maximal number of compression iterations
+                  tol=1e-2,       # maximum attaigned for now is ≈ 5%
                   optim_method=ConjugateGradient(),
                   optim_options=Optim.Options(g_abstol=1e-5, show_trace=true),
-                  )
+                  ) where {TR <: Real, TC <: Complex}
 
-    @assert  size(Wn,2)==1 "Wn is to be given as a single supercell vector"
+    @assert  size(Wn,2)==1 "The wannier function is to be given as a single supercell vector"
 
     # Compute initial values and populate info
     J = NaN
@@ -47,7 +50,7 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
     # problem in J.
     function f(X; D3_sym=true, in_linesearch=true)
         X[1:2] = D3_sym ? zeros(2) : vcat(X[1], θ)
-        inner_optimization(info, α0, X[1], X[2], X[3:end]; in_linesearch)
+        inner_optimization(info, wannier_center, X[1], X[2], X[3:end]; in_linesearch)
     end
 
     while ( (info.n_iter < max_iter) && !info.converged )
@@ -57,7 +60,7 @@ function compress_graphene_pz_wannier(basis, Wn, α0, r, θ;
         
         # Inner optimization: find new optimal MO
         N_AOs = prod(length.(pol_orders)) # Number of AOs
-        res = optimize(X -> f(X; D3_sym), vcat([r, θ], ones(N_AOs)),
+        res = optimize(X -> f(X; D3_sym), vcat([1.0, π_bond_axis], ones(N_AOs)),
                        optim_method, optim_options, autodiff=:forward)
         info, J, Λ, α = f(res.minimizer; D3_sym, in_linesearch=false)
         ζs = res.minimizer[3:end]

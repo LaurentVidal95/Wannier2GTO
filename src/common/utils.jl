@@ -1,9 +1,4 @@
 @doc raw"""
-Construct one s orbital of center ``α`` and spread ``ζ``.
-"""
-@inline s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
-
-@doc raw"""
 Matrix of the rotation of angle ``θ`` around ``[0,0]`` in the (x,y)-plane
 """
 @inline function rot(θ::T) where {T<:Real}
@@ -12,19 +7,4 @@ end
 
 @inline function polar_to_cartesian_coords(origin, r::T, θ::T) where {T<:Real}
     origin + r*(rot(θ)*[1.; 1.; 0.])
-end
-
-"""
-Provides the angle between axis x and the first axis of the (x,y)-plane
-D3 symmetry of pz-like wannier functions.
-"""
-function find_D3_sym_axis(basis_SC::PlaneWaveBasis, W_pz, α0)
-    α(λ, θ) = polar_to_cartesian_coords(α0, λ, θ)
-    res = optimize(X->norm(W_pz + s_orb(α(X[1],X[2]), X[3])(basis_SC)),
-                   [1., -1/2, 1/2], # Guess roughly close to wanted axis by experience.
-                   ConjugateGradient(linesearch=BackTracking(order=3)),
-                   Optim.Options(show_trace=true))
-    r, θ = res.minimizer[1:2]
-    (norm(r) < 1e-2) && (error("r ≈ 0.. Try changing s sign in optimization"))
-    r, θ
 end

@@ -36,7 +36,7 @@ end
 # """
 @inline function symmetry_adapted_polynoms(xy_orders, z_orders)
     [symmetry_adapted_polynoms(nxy, nz) for nz in z_orders
-     for nxy in xy_oders if (nz+nxy ≤ 6)]
+     for nxy in xy_orders if (nz+nxy ≤ 6)]
 end
 
 """
