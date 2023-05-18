@@ -16,10 +16,13 @@ using DelimitedFiles
 using WriteVTK
 
 # Utils
+export Hs_dot
+export Hs_norm
 export Hs_overlap
 export project_on_AO_basis
 export extract_wannier_function
 include("common/Hs_scalar_prods.jl")
+
 export store_wannier_function
 export read_wannier_function
 export find_D3_sym_axis

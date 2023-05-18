@@ -1,27 +1,40 @@
+# TODO: Doing `real` directly in Hs_dot is DANGEROUS
+
 """
 Computes the Hs scalar product of two vectors containing all (k+G) Fourier coefficients.
 In DFTK conventions, these vectors are Bloch wave of the supercell Gamma point.
 Conversion from cell to supercell is hence needed beforehand.
 """
-function Hs_dot(basis_SC::PlaneWaveBasis{T}, ψ1, ψ2; s=0) where {T<:Real}
+function safereal(tab; tol=1e-10)
+    norm(imag(tab)) < tol && return real(tab)
+    error("Non negligeable imaginary part")
+end
+
+function Hs_dot(basis_SC::PlaneWaveBasis{T}, ψ1, ψ2; s=0, tol=1e-10) where {T<:Real}
     # Handle L² norm case
-    s==0 && return dot(ψ1, ψ2)
+    s==0 && return safereal(dot(ψ1, ψ2); tol)
     # s ≥ 1
-    prefac_Hs = [(1+norm(kpG)^2)^s
-                 for kpG in G_vectors_cart(basis_SC, only(basis_SC.kpoints))]
-    real(dot(prefac_Hs .* ψ1, ψ2))
+    prefac_Hs = [(1+norm(Gpk)^2)^s
+                 for Gpk in G_vectors_cart(basis_SC, only(basis_SC.kpoints))]
+    safereal(dot(prefac_Hs .* ψ1, ψ2); tol)
 end
 
 function Hs_norm(basis_SC::PlaneWaveBasis, ψ; s=0)
-    square_norm = HS_dot(basis_SC, ψ, ψ, s=s)
+    square_norm = HS_dot(basis_SC, ψ, ψ; s)
     @assert (square_norm ≥ 0) "negative Hs_norm, try raising minimal spread ζ_min"
     sqrt(square_norm)
 end
 
 function Hs_overlap(basis_SC::PlaneWaveBasis, Χs_fourier; s=0)
     num_aos = length(Χs_fourier)
-    # Run over all GTOs and compute overlaps
-    [Hs_dot(basis_SC, Χs_fourier[μ], Χs_fourier[ν]; s) for μ in 1:num_aos, ν in 1:num_aos]
+    S = zeros(eltype(basis_SC), num_aos, num_aos)
+    for μ in 1:num_aos
+        for ν in μ:num_aos
+            S[μ, ν] = Hs_dot(basis_SC, Χs_fourier[μ], Χs_fourier[ν]; s)
+            (μ≠ν) && (S[ν, μ] = S[μ, ν])
+        end
+    end
+    Symmetric(S)
 end
 
 @doc raw"""
@@ -32,7 +45,7 @@ Kwarg ``s`` is the choice of Hs norm for the projection.
 """
 function project_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
                              Χs::Vector{Vector{ComplexF64}}; s=0)
-    Xs = normalize.(Xs) # renormalize AOs to avoid super big or small coeffs
+    normalize!.(Xs) # renormalize AOs to avoid super big or small coeffs
 
     # Check that Ψ and all AOs have been converted to supercell conventions
     num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))

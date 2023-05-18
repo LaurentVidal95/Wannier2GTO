@@ -6,6 +6,19 @@ using WannierIO
 using Wannier
 
 function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
+    function basis()
+        d = 10u"Å"
+        a = 2.641u"Å"  # Graphene Lattice constant
+        lattice = [a  -a/2    0;
+                   0  √3*a/2  0;
+                   0     0    d]
+        
+        C = ElementPsp(:C, psp=load_psp("hgh/pbe/c-q4"))
+        atoms     = [C, C]
+        positions = [[0.0, 0.0, 0.0], [1//3, 2//3, 0.0]]
+        model  = model_PBE(lattice, atoms, positions)
+        basis  = PlaneWaveBasis(model; Ecut, kgrid)
+    end
     function scf()
         d = 10u"Å"
         a = 2.641u"Å"  # Graphene Lattice constant
@@ -18,6 +31,7 @@ function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
         positions = [[0.0, 0.0, 0.0], [1//3, 2//3, 0.0]]
         model  = model_PBE(lattice, atoms, positions)
         basis  = PlaneWaveBasis(model; Ecut, kgrid)
+        
         nbandsalg = AdaptiveBands(basis.model; n_bands_converge=15)
         self_consistent_field(basis; nbandsalg, tol=1e-5);
     end
@@ -37,5 +51,5 @@ function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
             dis_froz_max=0.1,
         ));
     end
-    (;scf, wannierize)
+    (;basis, scf, wannierize)
 end
