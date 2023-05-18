@@ -8,8 +8,8 @@ and z_orders.
 function SAGTOs_basis(α, ζs, xy_orders, z_orders)
     @assert( length(ζs) == length(xy_orders)* length(z_orders) )
     # Import all polynomial parameters in a single table and create corresponding AOs
-    pol_parts = SAGTOs_polynoms(xy_orders, z_orders)
-    [GaussianPolynomial(pol, α, ζ) for (pol, ζ) in zip(pol_parts, ζs)]
+    polynoms = symmetry_adapted_polynoms(xy_orders, z_orders)
+    [GaussianPolynomial(pol[1], pol[2], α, ζ) for (polynoms, ζ) in zip(polynoms, ζs)]
 end
 
 """

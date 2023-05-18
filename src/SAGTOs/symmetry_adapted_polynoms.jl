@@ -26,22 +26,25 @@ Select among above parameters given a maximum order in (x,y) and z.
 """
 function select_orders(max_xy_order, max_z_order, D3_sym::Bool)
     !(D3_sym) && (max_xy_order=min(max_xy_order,2))
-    xy_orders = [0,2,3,6,9]; z_orders = [1,3,5,7,9];
+    xy_orders = [0,2,3,6,9]
+    z_orders = [1,3,5,7,9]
     xy_orders[xy_orders .≤ max_xy_order], z_orders[z_orders .≤ max_z_order]
 end
 
-"""
-Attention: the GaIn lib only handles gaussian integrals when (nx+ny+nz)≤6
-"""
-SAGTOs_polynoms(xy_orders, z_orders) =
-    [PolynomialPart(symmetry_adapted_polynoms(nxy,nz)...) for nz in z_orders
-                                        for nxy in xy_orders if (nz+nxy) ≤ 6]
+# """
+# Attention: the GaIn lib only handles gaussian integrals when (nx+ny+nz)≤6
+# """
+@inline function symmetry_adapted_polynoms(xy_orders, z_orders)
+    [symmetry_adapted_polynoms(nxy, nz) for nz in z_orders
+     for nxy in xy_oders if (nz+nxy ≤ 6)]
+end
+
 """
 Wraps the two functions above
 """
-function SAGTOs_polynoms(max_xy_order::Int64, max_z_order::Int64, D3_sym::Bool)
+function symmetry_adapted_polynoms(max_xy_order::Int64, max_z_order::Int64, D3_sym::Bool)
     xy_orders, z_orders = select_orders(max_xy_order, max_z_order, D3_sym)
-    SAGTOs_polynoms(xy_orders, z_orders)
+    symmetry_adapted_polynoms(xy_orders, z_orders)
 end
 
 # function ∇SAGTO_parameters(xy_orders, z_orders)
