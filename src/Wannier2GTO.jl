@@ -17,13 +17,14 @@ using WriteVTK
 
 # SAGTOs basis
 export GaussianPolynomial
-export SAGTOs_basis
+export SAGTO_basis
 include("SAGTOs/GaussianPolynomials.jl")
 include("SAGTOs/symmetry_adapted_polynoms.jl")
-include("SAGTOs/SAGTOs_basis.jl")
+include("SAGTOs/SAGTO_basis.jl")
 
 # Compression
 export compress_graphene_pz_wannier
+include("compressed_wannier/CompressedWannier.jl")
 include("wannier_preprocessing.jl")
 include("compression_routines/inner_optimization.jl")
 include("compression_routines/compression.jl")
