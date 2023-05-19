@@ -1,11 +1,13 @@
 module Wannier2GTO
 
+# Core packages
 using LinearAlgebra
 using Optim
 using LineSearches
 using ForwardDiff
 using DFTK
 
+# Fast evaluation of multivariate polynomials
 import DynamicPolynomials: @polyvar
 using StaticPolynomials
 using ThreadsX
@@ -15,10 +17,13 @@ using Printf
 using DelimitedFiles
 using WriteVTK
 
-
 export CompressedWannier
 include("CompressedWannier.jl")
 
+# Common features
+include("common/Hs_scalar_prods.jl")
+include("common/utils.jl")
+include("common/callback_info.jl")
 
 # SAGTOs basis
 export GaussianPolynomial
@@ -30,16 +35,6 @@ include("basis_functions/BasisFunctions.jl")
 # Compression
 export compress_graphene_pz_wannier
 include("wannier_preprocessing.jl")
-include("compression_routines/inner_optimization.jl")
-include("compression_routines/compression.jl")
-
-# Common features
-export Hs_dot
-export Hs_norm
-export Hs_overlap
-export project_on_AO_basis
-include("common/Hs_scalar_prods.jl")
-include("common/utils.jl")
-include("common/callback_info.jl")
+include("compression.jl")
 
 end # module

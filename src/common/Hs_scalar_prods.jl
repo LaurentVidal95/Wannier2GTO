@@ -1,15 +1,8 @@
-# TODO: Doing `real` directly in Hs_dot is DANGEROUS
-
 """
 Computes the Hs scalar product of two vectors containing all (k+G) Fourier coefficients.
 In DFTK conventions, these vectors are Bloch wave of the supercell Gamma point.
 Conversion from cell to supercell is hence needed beforehand.
 """
-function safereal(tab; tol=1e-10)
-    norm(imag(tab)) < tol && return real(tab)
-    error("Non negligeable imaginary part")
-end
-
 function Hs_dot(basis_SC::PlaneWaveBasis, ψ1::AbstractVector{T1},
                 ψ2::AbstractVector{T2}; s=0) where {T1, T2<:Complex}
     # Handle L² norm case
@@ -44,20 +37,21 @@ Compute projection on a given AO basis ``Χs``. Format:
 of fourier coefficients of ``Χμ`` at frequency ``k+Gs``.
 Kwarg ``s`` is the choice of Hs norm for the projection.
 """
-function project_on_AO_basis(basis_SC::PlaneWaveBasis, ψ,
-                             Χs::Vector{Vector{ComplexF64}}; s=0)
-    normalize!.(Xs) # renormalize AOs to avoid super big or small coeffs
+function project_wannier_on_basis(Wc::CompressedWannier)
+    s = Wc.error_norm
+    basis_SC = Wc.basis_supercell
 
     # Check that Ψ and all AOs have been converted to supercell conventions
-    num_kpG = length(G_vectors(basis_SC, only(basis_SC.kpoints)))
-    @assert( (length(ψ)==num_kpG) && (length(Χs[1])==num_kpG) )
+    Φs_Four = [Φ(basis_SC) for Φ in Wc.MOs]
+    normalize!.(Φs_Four) # Avoids weird coefficients
 
     # Compute the coefficients of the projection
-    S = Hs_overlap(basis_SC, Χs; s)
-    Χ = [Hs_dot(basis_SC, ψ, Χμ; s) for Χμ in Χs]
+    S = Hs_overlap(basis_SC, Φs_Four; s)
+    Χ = [Hs_dot(basis_SC, Wc.wannier, Φ; s) for Φ in Φs_Four]
     # Check for conditioning issues before inverting and stop if conditioning is to high
-    (cond(S) > 1e8) && (error("cond(S)>1e8"))
-    C_opti = (Symmetric(S)\Χ)
+    # (cond(S) > 1e8) && (error("cond(S)>1e8"))
+
+    C_opti = filter_small_coeffs.(Symmetric(S)\Χ)
     # Assemble projection in Fourier
-    (; func=sum( c .* Χμ for (c, Χμ) in zip(C_opti, Χs) ), coeffs=C_opti)
+    sum( c .* Φ for (c, Φ) in zip(C_opti, Φs_Four) ), C_opti
 end

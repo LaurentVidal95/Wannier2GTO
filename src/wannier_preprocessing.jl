@@ -18,7 +18,6 @@ function apply_U_matrices(wann_model, ψ)
 end
 
 function convert_wannier_to_supercell(Wn, basis, basis_SC)
-    !(norm(Wn) ≈ 1) && @warn "The given wannier is not normalized"
     Wn_SC = cell_to_supercell(Wn, DFTK.unfold_bz(basis), basis_SC)
     sum(eachcol(Wn_SC))
 end
@@ -38,6 +37,7 @@ function find_π_bond_axis(basis_SC::PlaneWaveBasis, W_pz, wannier_center;
     @info "Computing the π_bond axis in polar coordinates"
 
     α(λ, θ) = polar_to_cartesian_coords(wannier_center, λ, θ)
+
     # TODO: doc
     res = optimize(X->norm(W_pz + debug_sign*s_orb(α(X[1],X[2]), X[3])(basis_SC)),
                    # Guess roughly close to wanted axis by experience.
@@ -76,12 +76,11 @@ function prepare_for_compression(wann_model, scfres; wannier_manual_selection=no
     center = wann_res.r[:,i_pz]
     # Convert given Wannier from unit cell to supercell convention
     Wn_pz = convert_wannier_to_supercell([Wns_k[:,i_pz] for Wns_k in Wns], basis, basis_SC)
-    normalize!(Wn_pz)
+    normalize!(Wn_pz) # Renormalize just in case
     
     # Identify π-bond axis in polar coordinates
     r, θ = find_π_bond_axis(basis_SC, Wn_pz, center)
-    
-    # Return as CompressedWannier structure
+
     (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_bond_axis=(r,θ))
 end
 
