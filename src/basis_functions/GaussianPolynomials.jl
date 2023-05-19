@@ -1,4 +1,4 @@
-import Base.+
+import Base.+, Base.copy
 
 """
 Contains all parameters to describe a gaussian-polynomial g such that:
@@ -18,7 +18,6 @@ struct GaussianPolynomial{T1<:Real, T2<:Real}
     center::Vector{T1}
     spread::T2
 end
-
 function GaussianPolynomial(exps::Vector{Tuple{Int64, Int64, Int64}},
                             coeffs::Vector{T1}, center::Vector{T2},
                             spread::T3) where {T1, T2, T3 <: Real}
@@ -35,6 +34,7 @@ function (X::GaussianPolynomial)(A::AbstractArray)
 end
 (Χ::GaussianPolynomial)(basis_SC::PlaneWaveBasis) = fft_supercell(basis_SC, Χ)
 
+GaussianPolynomial(X::GaussianPolynomial, center) = GaussianPolynomial(X.pol, center, X.spread)
 
 """
 Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given

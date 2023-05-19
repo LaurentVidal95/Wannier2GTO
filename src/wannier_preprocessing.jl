@@ -29,18 +29,30 @@ Construct one s orbital of center ``α`` and spread ``ζ``.
 s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
 
 """
-TODO: better routine not based on shady optimization ?
 Provides the angle between axis x and the first axis of the (x,y)-plane
 D3 symmetry of pz-like wannier functions.
 """
-function find_π_bond_axis(basis_SC::PlaneWaveBasis, W_pz, wannier_center)
+function find_π_bond_axis(basis_SC::PlaneWaveBasis, W_pz, wannier_center;
+                          debug_sign=1)
+
     @info "Computing the π_bond axis in polar coordinates"
+
     α(λ, θ) = polar_to_cartesian_coords(wannier_center, λ, θ)
-    res = optimize(X->norm(W_pz + s_orb(α(X[1],X[2]), X[3])(basis_SC)),
-                   [1., -1/2, 1/2], # Guess roughly close to wanted axis by experience.
+    # TODO: doc
+    res = optimize(X->norm(W_pz + debug_sign*s_orb(α(X[1],X[2]), X[3])(basis_SC)),
+                   # Guess roughly close to wanted axis by experience.
+                   [1., -1/2, 1/2] .+ wannier_center,
                    ConjugateGradient(linesearch=BackTracking(order=3)))
     r, θ = res.minimizer[1:2]
-    (norm(r) < 1e-2) && (error("r ≈ 0.. Try changing s sign in optimization"))
+
+    # If r is approximately zero, launch optimization again by inverting the sign
+    # of the s orbital.
+    if norm(r) < 1e-2
+        (debug_sign==-1) && (error("r≈0, try to manualy chose the other pz wannier orbital"))
+        @warn "Failed optimization, trying with opposite sign"
+        return find_π_bond_axis(basis_SC, W_pz, wannier_center; debug_sign=-1)
+    end
+
     r, θ
 end
 
@@ -48,7 +60,7 @@ end
 Extract from scf computation and wannierization all the data needed for compression.
 To be fed directly to the compression routine.
 """
-function prepare_for_compression(wann_model, scfres)
+function prepare_for_compression(wann_model, scfres; wannier_manual_selection=nothing)
     # Compute supercell basis
     basis = scfres.basis
     basis_SC = cell_to_supercell(basis)
@@ -60,13 +72,17 @@ function prepare_for_compression(wann_model, scfres)
 
     # Select a pz wannier (they have wider spread that π-bonds)
     wann_res = Wannier.omega(wann_model)
-    i_pz = findmax(wann_res.ω)[2]
+    i_pz = isnothing(wannier_manual_selection) ? findmax(wann_res.ω)[2] : wannier_manual_selection
     center = wann_res.r[:,i_pz]
+    # Convert given Wannier from unit cell to supercell convention
     Wn_pz = convert_wannier_to_supercell([Wns_k[:,i_pz] for Wns_k in Wns], basis, basis_SC)
+    normalize!(Wn_pz)
     
     # Identify π-bond axis in polar coordinates
     r, θ = find_π_bond_axis(basis_SC, Wn_pz, center)
-    (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_axis=(r,θ))
+    
+    # Return as CompressedWannier structure
+    (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_bond_axis=(r,θ))
 end
 
 #

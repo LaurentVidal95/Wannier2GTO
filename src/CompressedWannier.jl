@@ -1,22 +1,22 @@
+using JSON3
+
+# TODO: Doc for that struct
 mutable struct CompressedWannier{TR<:Real, TC<:Complex}
     # Original Wannier function to compress
-    basis_SC :: PlaneWaveBasis{TR}
-    wannier :: AbstractArray{TC}
-    center :: Vector{TR}
+    basis_supercell :: PlaneWaveBasis
+    wannier         :: AbstractArray{TC}
+    center          :: Vector{TR}
     # Each MO is a name tuple with a list of coeffs and corresponding SAGTOs
-    MOs
+    MOs             # NamedTuples(TC, SAGTOs)[]
+    coefficients    :: Vector{TC}
     # Optim related
-    error
+    residual        ::AbstractArray{TC}
+    error           ::TR
     error_norm
 end
-
-function CompressedWannier(basis_SC::PlaneWaveBasis, Wn_pz::AbstractArray, center;
-                            error_norm=:L2)
-    # Initiate other args
-    TR = eltype(basis_SC)
-    MOs = [(;coeffs=[], SAGTOs=[])]
-    error = NaN
-    CompressedWannier(basis_SC, Wn_pz, center, MOs, error, error_norm)
+@inline function CompressedWannier(basis_SC::PlaneWaveBasis, Wn_pz::Vector{TC},
+                                   center; error_norm=0) where {TC<:Complex}
+    CompressedWannier(basis_SC, Wn_pz, center, [], TC[],  Wn_pz, NaN, error_norm)
 end
 
 function pol_to_arrays(pol::Polynomial)
@@ -25,12 +25,15 @@ function pol_to_arrays(pol::Polynomial)
     exps, coeffs
 end
 
+"""
+Residual is not stored as it can be recomputed easily
+"""
 function store(Wc::CompressedWannier; file="compressed_wannier.json")
-    data = Dict{String, any}
+    data = Dict{String, Any}()
     data["center"] = Wc.center
     data["MOs"] = []
     for Φ in Wc.MOs
-        Φ_dict = Dict{String, any}
+        Φ_dict = Dict{String, Any}()
         Φ_dict["coeffs"] = Φ.coeffs
         SAGTO_as_array = []
         for X in Φ.SAGTOs
@@ -44,4 +47,9 @@ function store(Wc::CompressedWannier; file="compressed_wannier.json")
         
     # Store as JSON file
     open(io->JSON3.write(io, data, allow_inf=true), file, "w")
+    nothing
+end
+
+function CompressedWannier(file)
+    # TODO Read CompressedWannier from file
 end
