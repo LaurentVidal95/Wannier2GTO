@@ -53,7 +53,7 @@ function find_π_bond_axis(basis_SC::PlaneWaveBasis, W_pz, wannier_center;
         return find_π_bond_axis(basis_SC, W_pz, wannier_center; debug_sign=-1)
     end
 
-    r, θ
+    (;r, θ)
 end
 
 @doc raw"""
@@ -74,14 +74,16 @@ function prepare_for_compression(wann_model, scfres; wannier_manual_selection=no
     wann_res = Wannier.omega(wann_model)
     i_pz = isnothing(wannier_manual_selection) ? findmax(wann_res.ω)[2] : wannier_manual_selection
     center = wann_res.r[:,i_pz]
+    @info "Selected Wannier function: n°$(i_pz)"
+   
     # Convert given Wannier from unit cell to supercell convention
     Wn_pz = convert_wannier_to_supercell([Wns_k[:,i_pz] for Wns_k in Wns], basis, basis_SC)
     normalize!(Wn_pz) # Renormalize just in case
-    
-    # Identify π-bond axis in polar coordinates
-    r, θ = find_π_bond_axis(basis_SC, Wn_pz, center)
 
-    (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_bond_axis=(r,θ))
+    # Identify π-bond axis in polar coordinates
+    π_bond = find_π_bond_axis(basis_SC, Wn_pz, center)
+
+    (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_bond)
 end
 
 #

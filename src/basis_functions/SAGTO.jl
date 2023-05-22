@@ -1,5 +1,3 @@
-using ThreadsX
-
 """
 Routines to build an SAGTO adapted to the symmetries of pz-type Wannier functions of graphene.
     • If AOs are centered on the Wannier center, the chosen symmetry is D3 in the (x,y) plane.
@@ -59,12 +57,4 @@ function SAGTO_basis(α, ζs, xy_orders, z_orders)
     # Import all polynomial parameters in a single table and create corresponding AOs
     polynoms = symmetry_adapted_polynoms(xy_orders, z_orders)
     [GaussianPolynomial(pol[1], pol[2], α, ζ) for (pol, ζ) in zip(polynoms, ζs)]
-end
-
-"""
-Returns the table of Bloch decomposition of SAGTOs given by the above routine.
-"""
-function SAGTO_basis(basis_SC::PlaneWaveBasis, α, ζs, xy_orders, z_orders)
-    Χs = SAGTO_basis(α, ζs, xy_orders, z_orders)
-    ThreadsX.map(Χ->Χ(basis_SC), Χs)
 end

@@ -1,5 +1,3 @@
-import Base.+, Base.copy
-
 """
 Contains all parameters to describe a gaussian-polynomial g such that:
 ``g(x) = ( ∑_{(n_x,n_z,n_z)} λ_{(n_x,n_y,n_z)}x^{n_x}y^{n_y}z^{n_z} ) 
