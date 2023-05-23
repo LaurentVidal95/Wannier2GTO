@@ -1,5 +1,3 @@
-using ReverseDiff
-
 """
 Compress pz-like Wannier function of graphene (given as a Fourier coefficient table)
 on an optimized symmetry adapted basis.
@@ -113,9 +111,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         Wc.residual = residual
         Wc.error = error
 
-        # Change symmetry requirement to explore both D3_sym and non D3_sym part of Wn        
-        # DEBUG
-        # (n_iter ≥ 1) && (center = D3_sym ? rand(3) : copy(Wc.center))
+        # Change symmetry requirement to explore both D3_sym and non D3_sym part of the wannier
+        (n_iter ≥ 1) && (center = D3_sym ? rand(3) : copy(Wc.center))
 
         # Actualize info
         info = merge(info, (;Wc, converged, n_iter))
@@ -123,6 +120,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     end
     info 
 end
+
+# Prototype for ReverseDiff gradient. For now produced memory errors.
 
 function objective_f_and_g!(Wc, ζ_min)
     # Objective function to optimize at each iteration. The function produce an optimal

@@ -1,10 +1,26 @@
-Here are some conventions of the code:
+Julia code to produce and compress a pz-like wannier function for Graphene. The basis functions for the compression
+are linear combinations of gaussian-polynomials, whose centers are located somewhere between the center of the wannier
+function and the middle of a pi-bond. The compression is adapted, specifically for graphene wannier functions with D3 symmetry,
+from the general method of [WannierCompression][^1].
 
- - The fundamental building blocs of the code are gaussian-polynomial functions.
-   Their polynomial part is described by its decomposition in the basis of 3 dimensional monoms, hence as a list of powers `(n_x, n_y, n_z)` and corresponding  coefficients. Their are denoted `Χ` throughout the code. A family of `Χ` is indexed by greek letters.
- - A linear combination of Gaussian Polynomials is called an AO and denoted Φ. A family of AOs is indexed with latin letters.
- - Wannier functions are to be projected on a basis of AOs, hence is ultimately described as a list of coefficient and corresponding Φs.
- - All scalar products are by default associated to the L2 norm. However any H^s norm can be chosen instead.
- - All functions (GTOs, AOs and Wannier) are stored by their Fourier coefficients in the plane-wave basis associated to scf computations that generated the Bloch waves. All operations utlimately acts on these arrays. If needed (e.g. for ploting) switching between real and Fourier space is done via FFT routines already implemented in DFTK (`G_to_r` and `r_to_G`)
 
-TODO: Actualize the code (and redo it better of course...)
+# Requirements: 
+Julia 1.8. and above.
+
+# Installing all dependancies
+Open a Julia shell with `julia --project` in your local copy of this repository and call
+```
+using Pkg; Pkg.instantiate(".")
+``` 
+to install all the needed dependancies.
+
+# Usage
+
+TODO
+
+# Contact
+This is research code, not user-friendly, actively maintened, extremely robust or optimized.
+It is desinged to be called only once to produce a set of coefficient. 
+If you have questions contact me at: Laurent(dot)vidal(at)enpc(dot)fr
+
+[^1]: Athmane, B., Eric, C., Paul, C., Shiang, F., & Efthimios, K. (2017). Compression of Wannier functions into Gaussian-type orbitals. (arXiv:1712.02996v1)
