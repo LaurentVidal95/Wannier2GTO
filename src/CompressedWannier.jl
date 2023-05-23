@@ -25,7 +25,8 @@ function pol_to_arrays(pol::Polynomial)
 end
 
 """
-Residual is not stored as it can be recomputed easily
+TODO: doc
+Store the compressed wannier. Residual is not stored as it can be recomputed easily.
 """
 function store(Wc::CompressedWannier; file="compressed_wannier.json")
     data = Dict{String, Any}()

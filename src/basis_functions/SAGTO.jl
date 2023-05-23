@@ -52,7 +52,7 @@ Return the table of Symmetry Adatped Gaussian polynomial with same center and
 respective spread in ζs, where the polynomial parts orders are given by xy_orders 
 and z_orders.
 """
-function SAGTO_basis(α, ζs, xy_orders, z_orders)
+function SAGTO_basis(α::Vector{T}, ζs::Vector{T}, xy_orders, z_orders) where {T<:Real}
     @assert( length(ζs) == length(xy_orders)* length(z_orders) )
     # Import all polynomial parameters in a single table and create corresponding AOs
     polynoms = symmetry_adapted_polynoms(xy_orders, z_orders)

@@ -4,53 +4,49 @@
 using Wannier
 
 @doc raw"""
-For a given set of bands ``\{Ψ_{nk}\}_{1\leq n \leq N_in}``
-and a Wannier90 file containing unitary matrices (for disentanglement or
-wannierization) returns a set of band ``{Ψ_out_{nk}}_{1\leq n \leq N_out}``
-with:
-``Ψ_out_{nk} = \sum\limits_{m=1}^{N_in} U_{mn}Ψ_{nk}``
-``N_in > N_out`` for disentanglement.
-``N_in = N_out`` for wannierization.
+Apply the unitary matrices contained in wann_model to obtain optimized
+Bloch states from initial ones.
 """
 function apply_U_matrices(wann_model, ψ)
     Uks = wann_model.U
     [ψ[k][:,1:wann_model.n_bands]*Uks[:,:,k] for k in 1:wann_model.n_kpts]
 end
-
-function convert_wannier_to_supercell(Wn, basis, basis_SC)
-    Wn_SC = cell_to_supercell(Wn, DFTK.unfold_bz(basis), basis_SC)
-    sum(eachcol(Wn_SC))
+@doc raw"""
+Goes from a list of vectors `Wn[kpt][iG]` in the unit cell to a single vector at 
+Γ point of the supercell.
+TODO: Keeping the structure as vect of kpt might be faster. Try benchmarking.
+"""
+function convert_wannier_to_supercell(Wnk, basis, basis_supercell)
+    Wn_supercell = cell_to_supercell(Wn, DFTK.unfold_bz(basis), basis_supercell)
+    sum(eachcol(Wn_supercell))
 end
 
-@doc raw"""
-Construct one s orbital of center ``α`` and spread ``ζ``.
-"""
-s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
 
 """
-Provides the angle between axis x and the first axis of the (x,y)-plane
-D3 symmetry of pz-like wannier functions.
+Small hack to provide the angle between axis x and the first axis of the 
+(x,y)-plane D3 symmetry of pz-like wannier functions.
 """
-function find_π_bond_axis(basis_SC::PlaneWaveBasis, W_pz, wannier_center;
+function find_π_bond_axis(basis_supercell::PlaneWaveBasis, wannier, wannier_center;
                           debug_sign=1)
 
     @info "Computing the π_bond axis in polar coordinates"
-
+    s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
     α(λ, θ) = polar_to_cartesian_coords(wannier_center, λ, θ)
 
-    # TODO: doc
-    res = optimize(X->norm(W_pz + debug_sign*s_orb(α(X[1],X[2]), X[3])(basis_SC)),
+    # Try to fit a s-like orbital to the part of the wannier function located
+    # on the π-bond axis.
+    res = optimize(X->norm(wannier + debug_sign*s_orb(α(X[1],X[2]), X[3])(basis_supercell)),
                    # Guess roughly close to wanted axis by experience.
                    [1., -1/2, 1/2] .+ wannier_center,
                    ConjugateGradient(linesearch=BackTracking(order=3)))
     r, θ = res.minimizer[1:2]
 
-    # If r is approximately zero, launch optimization again by inverting the sign
-    # of the s orbital.
+    # If r is approximately zero the hack failed or the s orbitals have wrong signs.
+    # Launch optimization again by inverting the sign of the s orbital.
     if norm(r) < 1e-2
         (debug_sign==-1) && (error("r≈0, try to manualy chose the other pz wannier orbital"))
         @warn "Failed optimization, trying with opposite sign"
-        return find_π_bond_axis(basis_SC, W_pz, wannier_center; debug_sign=-1)
+        return find_π_bond_axis(basis_supercell, wannier, wannier_center; debug_sign=-1)
     end
 
     (;r, θ)
@@ -63,7 +59,7 @@ To be fed directly to the compression routine.
 function prepare_for_compression(wann_model, scfres; wannier_manual_selection=nothing)
     # Compute supercell basis
     basis = scfres.basis
-    basis_SC = cell_to_supercell(basis)
+    basis_supercell = cell_to_supercell(basis)
 
     # Compute Wannier functions from Bloch states and unitary matrices in wann_model
     # Unfold eventual k-point symmetries
@@ -77,13 +73,13 @@ function prepare_for_compression(wann_model, scfres; wannier_manual_selection=no
     @info "Selected Wannier function: n°$(i_pz)"
    
     # Convert given Wannier from unit cell to supercell convention
-    Wn_pz = convert_wannier_to_supercell([Wns_k[:,i_pz] for Wns_k in Wns], basis, basis_SC)
-    normalize!(Wn_pz) # Renormalize just in case
+    wannier = convert_wannier_to_supercell([Wns_k[:,i_pz] for Wns_k in Wns], basis, basis_supercell)
+    normalize!(wannier) # Renormalize just in case
 
     # Identify π-bond axis in polar coordinates
-    π_bond = find_π_bond_axis(basis_SC, Wn_pz, center)
+    π_bond = find_π_bond_axis(basis_supercell, wannier, center)
 
-    (; basis_supercell=basis_SC, wannier=Wn_pz, center, π_bond)
+    (; basis_supercell, wannier, center, π_bond)
 end
 
 #

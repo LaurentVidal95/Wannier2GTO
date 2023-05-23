@@ -9,7 +9,6 @@ Parameters are:
    • ``center = [α_x, α_y, α_z]`` the center of the GTO in cartesian coordinates
 
  Types are specific for each parameter to be compatible with Forward Diff
-
 """
 struct GaussianPolynomial{T1<:Real, T2<:Real}
     pol::Polynomial
@@ -30,7 +29,7 @@ function (X::GaussianPolynomial)(A::AbstractArray)
     exp_part = ThreadsX.map(R->exp(-X.spread*norm(R .- X.center)^2), A)
     pol_part .* exp_part
 end
-(Χ::GaussianPolynomial)(basis_SC::PlaneWaveBasis) = fft_supercell(basis_SC, Χ)
+(Χ::GaussianPolynomial)(basis_supercell::PlaneWaveBasis) = fft_supercell(basis_supercell, Χ)
 
 GaussianPolynomial(X::GaussianPolynomial, center) = GaussianPolynomial(X.pol, center, X.spread)
 
@@ -39,18 +38,18 @@ Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ)
 GaussianPolynomial using DFTK FFT routines. For now very slow somehow...
 Maybe because of the convert part.
 """
-function fft_supercell(basis_SC::PlaneWaveBasis, X::GaussianPolynomial)
+function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial)
     # Shift X to the center of the cell to avoid sampling issues
-    T = eltype(basis_SC)
-    shift = sum(eachcol((basis_SC.model.lattice .- X.center) ./ 2))
+    T = eltype(basis_supercell)
+    shift = sum(eachcol((basis_supercell.model.lattice .- X.center) ./ 2))
 
     # Compute FFT of X
-    X_real = X(r_vectors_cart(basis_SC) .- Ref(shift))
-    X_fourier = fft(basis_SC, X_real)[basis_SC.kpoints[1].mapping]
+    X_real = X(r_vectors_cart(basis_supercell) .- Ref(shift))
+    X_fourier = fft(basis_supercell, X_real)[basis_supercell.kpoints[1].mapping]
 
     # Shift back to original center
     # TODO: speed up todo here
-    X_fourier .*= ThreadsX.map(Gpk_cart-> cis(dot(Gpk_cart, shift)),
-                      G_vectors_cart(basis_SC, only(basis_SC.kpoints)))
+    X_fourier .*= ThreadsX.map( Gpk_cart-> cis(dot(Gpk_cart, shift)),
+                      G_vectors_cart(basis_supercell, only(basis_supercell.kpoints)) )
     normalize!(X_fourier)
 end
