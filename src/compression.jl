@@ -15,14 +15,14 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
                   max_iter=20,    # Maximal number of compression iterations
                   tol=1e-2,       # maximum attaigned for now is ≈ 5%
                   optim_method=ConjugateGradient(),
-                  optim_options=Optim.Options(g_abstol=1e-4, show_trace=true),
+                  optim_options=Optim.Options(g_abstol=1e-1, show_trace=true),
                   )
 
     # Extract compressed wannier data
     wannier = Wc.wannier
-    basis_SC = Wc.basis_supercel
+    basis_SC = Wc.basis_supercell
     π_bond_center = polar_to_cartesian_coords(Wc.center, π_bond.r, π_bond.θ)
-    residual = Wc.residual
+    residual = normalize!(Wc.residual)
     error = Wc.error
     s = Wc.error_norm
     residual_norm = Hs_norm(basis_SC, residual; s)
@@ -46,8 +46,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     # SAGTOs with given spreads and center, respecting the symmetries encoded in xy_orders and z_orders.
     # When "in_linesearch", the function only returns the Hˢ error of approximation of the
     # residual by the optimal basis function.
-    function f(spreads::Vector{T}; center::Vector{T}, xy_orders, z_orders,
-               in_linesearch=true) where {T<:Real}
+    function f(spreads::Vector{T1}; center::Vector{T2}, xy_orders, z_orders,
+               in_linesearch=true) where {T1, T2<:Real}
         # Hack to avoid conditioning problems with small spreads
         findmin(spreads)[1] < ζ_min && return Inf
         
@@ -112,7 +112,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         Wc.error = error
 
         # Change symmetry requirement to explore both D3_sym and non D3_sym part of the wannier
-        (n_iter ≥ 1) && (center = D3_sym ? rand(3) : copy(Wc.center))
+        (n_iter ≥ 2) && (center = D3_sym ? rand(3) : copy(Wc.center))
 
         # Actualize info
         info = merge(info, (;Wc, converged, n_iter))
