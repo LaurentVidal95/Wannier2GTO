@@ -20,12 +20,12 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
 
     # Extract compressed wannier data
     wannier = Wc.wannier
-    basis_SC = Wc.basis_supercell
+    basis_supercell = Wc.basis_supercell
     π_bond_center = polar_to_cartesian_coords(Wc.center, π_bond.r, π_bond.θ)
     residual = Wc.residual
     error = Wc.error
     s = Wc.error_norm
-    residual_norm = Hs_norm(basis_SC, residual; s)
+    residual_norm = Hs_norm(basis_supercell, residual; s)
     basis_functions = Wc.basis_functions
     coefficients = Wc.coefficients
 
@@ -103,7 +103,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
 
         # Compute new res and check CV
         residual = wannier .- compressed_wannier
-        error = Hs_norm(basis_SC, residual; s) / Hs_norm(basis_SC, wannier; s)
+        error = Hs_norm(basis_supercell, residual; s) / Hs_norm(basis_supercell, wannier; s)
         (error < tol) && (converged = true)
 
         # TODO: Add storage of the CompressedWannier
