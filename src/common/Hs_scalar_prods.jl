@@ -40,13 +40,13 @@ function project_wannier_on_basis(Wc::CompressedWannier)
 
     # Check that Ψ and all AOs have been converted to supercell conventions
     Φs_Four = [Φ(basis_supercell) for Φ in Wc.basis_functions]
-    normalize!.(Φs_Four) # Avoids weird coefficients
 
     # Compute the coefficients of the projection
     S = Hs_overlap(basis_supercell, Φs_Four; s)
     Χ = [Hs_dot(basis_supercell, Wc.wannier, Φ; s) for Φ in Φs_Four]
-    # Check for conditioning issues before inverting and stop if conditioning is to high
+
     # TODO: add cure for conditioning
+    # Check for conditioning issues before inverting and stop if conditioning is to high
     # (cond(S) > 1e8) && (error("cond(S)>1e8"))
 
     C_opti = filter_small_coeffs.(Hermitian(S)\Χ)

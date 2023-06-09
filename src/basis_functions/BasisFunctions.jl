@@ -1,3 +1,5 @@
+import LinearAlgebra.normalize!
+
 struct BasisFunction{TC<:Complex}
     coeffs :: Vector{TC}
     SAGTOs # Vector of Gaussian polynomials
@@ -40,4 +42,10 @@ function optimal_basis_function(Wc, SAGTOs; tol=1e-5)
     Φ = BasisFunction(optimal_coeffs, SAGTOs)
     !iszero(center - Wc.center) &&  (Φ = enforce_D3_symmetry(Φ))
     Φ, Hs_norm(basis_SC, Φ(basis_SC) - Wc.residual; s=Wc.error_norm)^2
+end
+
+function normalize!(basis_supercell::PlaneWaveBasis, Φ::BasisFunction)
+    norm_Φ = norm(Φ(basis_supercell))
+    normalized_coeffs = Φ.coeffs ./ norm_Φ
+    BasisFunction(normalized_coeffs, Φ.SAGTOs)
 end
