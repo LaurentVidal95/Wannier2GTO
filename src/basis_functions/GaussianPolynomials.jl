@@ -35,8 +35,7 @@ GaussianPolynomial(X::GaussianPolynomial, center) = GaussianPolynomial(X.pol, ce
 
 """
 Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
-GaussianPolynomial using DFTK FFT routines. For now very slow somehow...
-Maybe because of the convert part.
+GaussianPolynomial using DFTK FFT routines.
 """
 function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial)
     # Shift X to the center of the cell to avoid sampling issues
@@ -48,7 +47,6 @@ function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial)
     X_fourier = fft(basis_supercell, X_real)[basis_supercell.kpoints[1].mapping]
 
     # Shift back to original center
-    # TODO: speed up todo here
     X_fourier .*= ThreadsX.map( Gpk_cart-> cis(dot(Gpk_cart, shift)),
                       G_vectors_cart(basis_supercell, only(basis_supercell.kpoints)) )
     normalize!(X_fourier)

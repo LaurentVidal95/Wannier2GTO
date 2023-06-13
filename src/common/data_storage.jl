@@ -1,4 +1,7 @@
-# TODO: Update to new Wannier2GTO
+#
+# Debug routines that allow to store a wannier function
+# to avoid redoing the wannierization each time
+#
 
 """
 Allow to store complex numbers with JSON3
@@ -32,45 +35,3 @@ function read_wannier_function(filename::String)
     !(norm(wannier) ≈ 1) && @warn "The wannier function is not normalized"
     (;wannier, center, π_bond=(;r, θ))
 end
-
-# OLD
-
-# function write_wannier_vtk(wn, basis::PlaneWaveBasis, prefix::String;
-#                            basis_SC=cell_to_supercell(basis))
-#     wn_SC = cell_to_supercell(wn, DFTK.unfold_bz(basis), basis_SC)
-#     wn_real = real.(ifft(basis_SC, only(basis_SC.kpoints), sum(eachcol(wn_SC))))
-#     r_cart = map(r->basis_SC.model.lattice*r, basis_SC.r_vectors)
-#     x = [r[1] for r in r_cart]
-#     y = [r[2] for r in r_cart]
-#     z = [r[3] for r in r_cart]
-#     vtk_grid(prefix, x, y, z) do vtk
-#         vtk["wannier"] = wn_real
-#     end
-#     nothing
-# end
-
-# function read_compressed_wannier(basis_SC, filename::String)
-#     data = open(JSON3.read, filename)
-#     # Extract proj coeffs
-#     proj_coeffs = Float64.(data[0])
-#     N_SAGTOs = length(proj_coeffs)
-#     p = Progress(N_SAGTOs, desc="Assembling compressed Wannier")
-#     # Extract all MOs
-#     Φs = map(1:N_SAGTOs) do i
-#         Λs, αs, ζs, pol_orders = data[i]
-#         next!(p) # progress bar
-#         assemble_MO(basis_SC, Λs, αs, ζs, pol_orders...)
-#     end
-#     proj_coeffs'Φs
-# end
-
-# function assemble_MO(basis_SC, Λ, αs, ζs, xy_orders, z_orders)
-#     # JSON type -> Float64
-#     Λ = Float64.(Λ)
-#     αs = [Float64.(α) for α in αs]
-#     ζs = Float64.(ζs)
-
-#     # Assemble MO
-#     AOs = vcat(SAGTOs_basis.(αs, Ref(ζs), Ref(xy_orders), Ref(z_orders))...)
-#     Λ'ThreadsX.map(X->X(basis_SC), AOs)
-# end

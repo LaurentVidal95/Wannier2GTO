@@ -10,6 +10,7 @@ Generate polynom parameters so that the associated AOs have the same symmetry
 as the pz-like Wannier function of graphene.
 """
 function symmetry_adapted_polynoms(nxy::Int64, nz::Int64)
+    @assert( rem(nz, 2) == 1 )
     @assert( nxy ∈ (0,2,3,4,6,9) )
     (nxy==0) && (return [(0,0,nz)], [1.])
     (nxy==2) && (return [(2,0,nz), (0,2,nz)], [1., 1.])

@@ -3,9 +3,8 @@ module Wannier2GTO
 # Core packages
 using LinearAlgebra
 using Optim
-using LineSearches
-# using ReverseDiff # TODO DEBUG
 using ForwardDiff   # TODO Replace with ReverseDiff or equiv
+# using ReverseDiff # TODO DEBUG
 using DFTK
 
 # Fast evaluation of multivariate polynomials
@@ -15,7 +14,6 @@ using ThreadsX
 
 # I/O stuff and Visualisation
 using Printf
-using WriteVTK
 
 # Basis functions are linear combinations of gaussian polynomials
 export GaussianPolynomial

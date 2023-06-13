@@ -38,18 +38,20 @@ function project_wannier_on_basis(Wc::CompressedWannier)
     s = Wc.error_norm
     basis_supercell = Wc.basis_supercell
 
-    # Check that Ψ and all AOs have been converted to supercell conventions
+    # Compute the Fourier coefficients of all basis functions on the supercell
+    # planewave basis.
     Φs_Four = [Φ(basis_supercell) for Φ in Wc.basis_functions]
-    normalize!.(Φs_Four) # Avoids weird coefficients
 
-    # Compute the coefficients of the projection
+    # Compute the projection
     S = Hs_overlap(basis_supercell, Φs_Four; s)
     Χ = [Hs_dot(basis_supercell, Wc.wannier, Φ; s) for Φ in Φs_Four]
-    # Check for conditioning issues before inverting and stop if conditioning is to high
+
     # TODO: add cure for conditioning
+    # Check for conditioning issues before inverting and stop if conditioning is to high
     # (cond(S) > 1e8) && (error("cond(S)>1e8"))
 
     C_opti = filter_small_coeffs.(Hermitian(S)\Χ)
+
     # Assemble projection in Fourier
     sum( c .* Φ for (c, Φ) in zip(C_opti, Φs_Four) ), C_opti
 end

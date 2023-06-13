@@ -1,7 +1,7 @@
 using JSON3
 
 mutable struct CompressedWannier{TR<:Real, TC<:Complex}
-    # Original Wannier function to compress
+    # Data on the original Wannier function to compress
     basis_supercell :: PlaneWaveBasis
     wannier         :: AbstractArray{TC}
     center          :: Vector{TR}
@@ -30,7 +30,6 @@ Store the compressed wannier. Residual is not stored as it can be recomputed eas
 """
 function store(Wc::CompressedWannier; file="compressed_wannier.json")
     data = Dict{String, Any}()
-    data["center"] = Wc.center
     data["basis_functions"] = []
     for Φ in Wc.basis_functions
         Φ_dict = Dict{String, Any}()
@@ -44,12 +43,15 @@ function store(Wc::CompressedWannier; file="compressed_wannier.json")
     end
     data["error"] = Wc.error
     data["error_norm"] = Wc.error_norm
-        
+    data["coefficients"] = Wc.coefficients
+
     # Store as JSON file
     open(io->JSON3.write(io, data, allow_inf=true), file, "w")
     nothing
 end
 
-function CompressedWannier(file)
-    # TODO Read CompressedWannier from file
-end
+# function CompressedWannier(basis_supercell, wannier, center, file)
+#     # TODO: complete the function ! In particular have to parse JSON arrays as BasisFunction
+#     data = open(JSON3.read, file)
+#     basis_functions = [BasisFunction(ComplexF64.(Φ.coeffs), Φ.SAGTO) for Φ in test.basis_functions]
+# end

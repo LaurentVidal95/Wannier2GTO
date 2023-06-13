@@ -1,4 +1,3 @@
-using Wannier2GTO
 using DFTK
 using DFTK.Unitful
 using DFTK.UnitfulAtomic
