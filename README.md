@@ -16,7 +16,13 @@ to install all the needed dependancies.
 
 # Usage
 
-TODO
+All that concerns the compression routine has not been designed to be launched by the user.
+It is not optimized and has only been run once to produce the compressed wannier data.
+For the sake of completeness, the file `tests/launch_compression.jl` launches the
+compression routine from a precomputed wannier function stored in `wannier_pz.json`.
+
+Only the part of the code that is related to the construction of tight-binding quantities from
+the compressed wannier is to be used. # This part is still to be coded..
 
 # Contact
 This is research code, not user-friendly, actively maintened, extremely robust or optimized.
