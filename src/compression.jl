@@ -150,7 +150,7 @@ function objective_f_and_g!(Wc, ζ_min)
 
     # Define optimized autodiff gradient with ReverseDiff
     # n_AOs_max = prod(length.(select_orders(max_xy_order, max_z_order, true)))
-    # g_tape = ReverseDiff.GradientTape(f,etc...)
+    # g_tape = ReverseDiff.GradientTape(f, etc...) see ReverseDiff doc
     function g!(G, input; D3_sym, kwargs...)
         foo = similar(G)
         if D3_sym
