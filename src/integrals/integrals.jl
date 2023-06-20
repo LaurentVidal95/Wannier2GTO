@@ -1,20 +1,43 @@
 using Wannier2GTO.GaIn
 
-function overlap(X₁::GaussianPolynomial, X₂::GaussianPolynomial)
+symb_to_integral = Dict([:overlap => GaIn.overlap,
+                         :kinetic => GaIn.kinetic,
+                         :ionic => GaIn.ionic,
+                         :coulomb => GaIn.coulomb])                    
+
+function integral(X₁::GaussianPolynomial, X₂::GaussianPolynomial;
+                  type=:overlap)
     output = zero(X₁.spread)
-    @show TR = float(eltype(X₁.center))
+    TR = float(eltype(X₁.center))
     for ((nx₁,ny₁,nz₁), λ₁) in zip(pol_to_arrays(X₁.pol)...)
         for ((nx₂,ny₂,nz₂), λ₂) in zip(pol_to_arrays(X₂.pol)...)
-            output += λ₁*λ₂*GaIn.overlap(X₁.spread, TR.(X₁.center), nx₁, ny₁, nz₁,
-                                         X₂.spread, TR.(X₂.center), nx₂, ny₂, nz₂)
+            output += λ₁*λ₂*symb_to_integral[type](X₁.spread, TR.(X₁.center), nx₁, ny₁, nz₁,
+                                                   X₂.spread, TR.(X₂.center), nx₂, ny₂, nz₂)
         end
     end
     output
 end
 
-function overlap(Φ₁::BasisFunction, Φ₂::BasisFunction)
-#     TR = real(eltype(Φ₁.coeffs))
-#     output = zero(TR)
-#     for (λ₁, X₁) in Φ₁.
-    
+function integral(Φ₁::BasisFunction, Φ₂::BasisFunction;
+                  type=:overlap)
+    TR = real(eltype(Φ₁.coeffs))
+    output = zero(TR)
+    for (λ₁, X₁) in zip(Φ₁.coeffs, Φ₁.SAGTOs)
+        for (λ₂, X₂) in zip(Φ₂.coeffs, Φ₂.SAGTOs)
+            output += λ₁*λ₂*integral(X₁, X₂; type)
+        end
+    end
+    output       
+end
+
+function integral(Wc₁::CompressedWannier, Wc₂::CompressedWannier;
+                  type=:overlap)
+    TR = real(eltype(Wc₁.coefficients))
+    output = zero(TR)
+    for (λ₁, Φ₁) in zip(Wc₁.coefficients, Wc₁.basis_functions)
+        for (λ₂, Φ₂) in zip(Wc₂.coefficients, Wc₂.basis_functions)
+            output += λ₁*λ₂*integral(Φ₁, Φ₂; type)
+        end
+    end
+    output
 end
