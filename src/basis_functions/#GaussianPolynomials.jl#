@@ -41,7 +41,7 @@ function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial)
     # Shift X to the center of the cell to avoid sampling issues
     T = eltype(basis_supercell)
     shift = sum(eachcol((basis_supercell.model.lattice .- X.center) ./ 2))
-
+    
     # Compute FFT of X
     X_real = X(r_vectors_cart(basis_supercell) .- Ref(shift))
     X_fourier = fft(basis_supercell, X_real)[basis_supercell.kpoints[1].mapping]

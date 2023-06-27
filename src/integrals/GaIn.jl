@@ -1,7 +1,8 @@
 module GaIn
 
 # TODO: replace with gain_jll binary
-const GaIn_lib = "/home/lvidal/Documents/CERMICS/these/Materiaux_2D/wannierization/GaIn/GaIn-1.0/src/lib.so"
+const GaIn_lib = "/home/lvidal/programs/GaIn/lib/libGaIn.so"
+# Documents/CERMICS/these/Materiaux_2D/wannierization/GaIn/GaIn-1.0/src/lib.so"
 struct Ccplx
     r::Cdouble
     i::Cdouble

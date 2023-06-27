@@ -40,4 +40,8 @@ export compress_graphene_pz_wannier
 include("wannier_preprocessing.jl")
 include("compression.jl")
 
+# Gaussian polynomial analytic
+include("integrals/GaIn.jl")
+include("integrals/integrals.jl")
+
 end # module
