@@ -5,8 +5,8 @@ struct BasisFunction{TC<:Complex}
     SAGTOs # Vector of Gaussian polynomials
 end
 
-function (Φ::BasisFunction)(basis_supercell::PlaneWaveBasis)
-    SAGTOs_Fourier = [X(basis_supercell) for X in Φ.SAGTOs]
+function (Φ::BasisFunction)(basis_supercell::PlaneWaveBasis; normalize_SAGTO=true)
+    SAGTOs_Fourier = [X(basis_supercell; normalize_SAGTO) for X in Φ.SAGTOs]
     sum(λ * SAGTOs_Fourier[i] for  (i, λ) in enumerate(Φ.coeffs))
 end
 
@@ -44,8 +44,8 @@ function optimal_basis_function(Wc, SAGTOs; tol=1e-5)
     Φ, Hs_norm(basis_SC, Φ(basis_SC) - Wc.residual; s=Wc.error_norm)^2
 end
 
-function normalize(basis_supercell::PlaneWaveBasis, Φ::BasisFunction)
-    norm_Φ = norm(Φ(basis_supercell))
+function normalize(Φ::BasisFunction)
+    norm_Φ = √(integral(Φ, Φ; type=:overlap))
     normalized_coeffs = Φ.coeffs ./ norm_Φ
     BasisFunction(normalized_coeffs, Φ.SAGTOs)
 end

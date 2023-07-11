@@ -30,13 +30,13 @@ function GaussianPolynomial(exps::Vector{Tuple{Int64, Int64, Int64}},
     pol = Polynomial(sum( prod([x,y,z] .^ exps)*λ for (exps, λ) in zip(exps, coeffs) ))
 
     # Fourier part
-    g_hat(q) = exp(-(q^2)/(4*spread))
+    g_hat(q) = exp(-(q^2)/(4*spread)) * ((π/spread)^(3/2))
     X_hat(q) = cis(-dot(q,center)) *
         ThreadsX.sum( λμ * prod( (im^nj)*∂n(y->g_hat(y), nj, qj)
                                  for (nj, qj) in zip(exp_μ, q) )
                       for (exp_μ, λμ) in zip(exps, coeffs)
                       )
-
+    
     GaussianPolynomial(pol, center, spread, X_hat)
 end
 function (X::GaussianPolynomial)(A::AbstractArray)
@@ -45,24 +45,38 @@ function (X::GaussianPolynomial)(A::AbstractArray)
     exp_part = ThreadsX.map(R->exp(-X.spread*norm(R .- X.center)^2), A)
     pol_part .* exp_part
 end
-(X::GaussianPolynomial)(basis_supercell::PlaneWaveBasis) = fft_supercell(basis_supercell, X)
+(X::GaussianPolynomial)(basis_supercell::PlaneWaveBasis; normalize_SAGTO=true) =
+    fft_supercell(basis_supercell, X; normalize_SAGTO)
 ℱ(X::GaussianPolynomial, x)= X.Fourier_transform(x)
 
-GaussianPolynomial(X::GaussianPolynomial, center) = GaussianPolynomial(X.pol, center, X.spread)
-
+function GaussianPolynomial(X::GaussianPolynomial, center)
+    exps, coeffs = pol_to_arrays(X.pol)
+    GaussianPolynomial(exps, coeffs, center, X.spread)
+end
 
 """
-Same as above but clumsy, hack with AD to avoid boundary issues
+Same as above but clumsy, hack with AD to avoid boundary issues.
+Beware: a small Ecut results in numerical errors. (Ecut=15 ≈ 2e-4 precision).
 """
-fft_supercell(basis_SC::PlaneWaveBasis, X::GaussianPolynomial) =
-    normalize!(ℱ.(Ref(X), G_vectors_cart(basis_SC, only(basis_SC.kpoints))))
+function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial;
+                       normalize_SAGTO=true)
+    X_four = ℱ.(Ref(X), G_vectors_cart(basis_supercell), only(basis_supercell.kpoints))
+    # Integrate a normalization step to the fft to avoid a lot of recomputations
+    # Indeed, it is better to have X normalized during compression to avoid numerical
+    # problems with very small norm and very big coefficients.
+    # At the end of the procedure, all coefficients in X are recomputed so that it is
+    # really normalized. See "fix_coefficients"
+    (normalize_SAGTO) && (return normalize!(X_four))
+    X_four
+end
 
 # """
 # Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
 # GaussianPolynomial using DFTK FFT routines.
 # Suffers from boundary issues when the spread is to high (≥ 1 or so)
 # """
-# function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial)
+# function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial;
+#                        normalize_SAGTO=true)
 #     # Shift X to the center of the cell to avoid sampling issues
 #     T = eltype(basis_supercell)
 #     shift = sum(eachcol((basis_supercell.model.lattice .- X.center) ./ 2))
@@ -75,5 +89,6 @@ fft_supercell(basis_SC::PlaneWaveBasis, X::GaussianPolynomial) =
 #     # Shift back to original center
 #     X_fourier .*= ThreadsX.map( Gpk_cart-> cis(dot(Gpk_cart, shift)),
 #                       G_vectors_cart(basis_supercell, only(basis_supercell.kpoints)) )
-#     # normalize!(X_fourier)
+#     (normalize_SAGTO) && normalize!(X_fourier)
+#     X_fourier
 # end

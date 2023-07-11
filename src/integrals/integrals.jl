@@ -1,9 +1,10 @@
 using Wannier2GTO.GaIn
 
 symb_to_integral = Dict([:overlap => GaIn.overlap,
+                         :laplacian => GaIn.laplacian,
                          :kinetic => GaIn.kinetic,
                          :ionic => GaIn.ionic,
-                         :coulomb => GaIn.coulomb])                    
+                         :coulomb => GaIn.coulomb])
 
 function integral(X₁::GaussianPolynomial, X₂::GaussianPolynomial;
                   type=:overlap)

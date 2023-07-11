@@ -106,12 +106,10 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         error = Hs_norm(basis_supercell, residual; s) / Hs_norm(basis_supercell, wannier; s)
         (error < tol) && (converged = true)
 
-        # TODO: Add storage of the CompressedWannier
         # TODO: Add step that cures conditioning problems
 
         # Actualize compressed wannier structure and info
         Wc.basis_functions = basis_functions
-        # TODO: modify the basis_function coeff so that it is normalized
         Wc.coefficients = coeffs
         Wc.residual = residual
         Wc.error = error
@@ -124,7 +122,11 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         info = merge(info, (;Wc, converged, n_iter))
         callback(info)
     end
-    info
+    # Store compressed wannier with true coefficients
+    # See "fft_supercell" in "GaussianPolynomials.jl" for further details.
+    Wc = fix_coefficients!(basis_supercell, info.Wc)
+    store(Wc; file)
+    info = merge(info, (;Wc))
 end
 
 # Prototype for ReverseDiff gradient. For now produced memory errors.

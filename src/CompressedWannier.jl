@@ -13,9 +13,9 @@ mutable struct CompressedWannier{TR<:Real, TC<:Complex}
     error           ::TR
     error_norm
 end
-@inline function CompressedWannier(basis_SC::PlaneWaveBasis, Wn_pz::Vector{TC},
+@inline function CompressedWannier(basis_supercell::PlaneWaveBasis, Wn_pz::Vector{TC},
                                    center; error_norm=0) where {TC<:Complex}
-    CompressedWannier(basis_SC, Wn_pz, center, BasisFunction[], TC[],  Wn_pz, NaN, error_norm)
+    CompressedWannier(basis_supercell, Wn_pz, center, BasisFunction[], TC[],  Wn_pz, NaN, error_norm)
 end
 
 function pol_to_arrays(pol::Polynomial)
@@ -75,4 +75,20 @@ function CompressedWannier(basis_supercell, file)
     end
     CompressedWannier(basis_supercell, TC[], TR[], basis_functions, TC.(data.coefficients),
                       TC[], data.error, data.error_norm)
+end
+
+function fix_coefficients!(Wc::CompressedWannier)
+    basis_functions = []
+    for Φ in Wc.basis_functions
+        SAGTOs = []
+        for X in Φ.SAGTOs
+            prefac = √(integral(X, X; type=:overlap))
+            exps, coeffs = pol_to_arrays(X.pol)
+            push!(SAGTOs, GaussianPolynomial(exps, coeffs ./ prefac, X.center, X.spread))
+        end
+        
+        push!(basis_functions, BasisFunction(Φ.coeffs, SAGTOs))
+    end
+    Wc.basis_functions = basis_functions
+    nothing
 end

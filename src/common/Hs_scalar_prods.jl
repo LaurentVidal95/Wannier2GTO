@@ -43,7 +43,7 @@ function project_wannier_on_basis(Wc::CompressedWannier)
     Φs_Four = [Φ(basis_supercell) for Φ in Wc.basis_functions]
 
     # Compute the projection
-    S = Hs_overlap(basis_supercell, Φs_Four; s)
+    S = Hs_overlap(basis_supercell, Φs_Four; s) # Replace by analytic overlap
     Χ = [Hs_dot(basis_supercell, Wc.wannier, Φ; s) for Φ in Φs_Four]
 
     # TODO: add cure for conditioning
