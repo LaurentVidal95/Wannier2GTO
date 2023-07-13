@@ -23,3 +23,8 @@ function filter_small_coeffs(z::TC; tol=1e-5) where {TC<:Complex}
     b_new = norm(b)<tol ? zero(b) : b
     a_new + im*b_new
 end
+
+function filter_dual(x::T) where T
+    !(eltype(x) <: AbstractFloat) && (return x.value)
+    x
+end

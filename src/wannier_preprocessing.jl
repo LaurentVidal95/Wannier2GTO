@@ -2,6 +2,7 @@
 # done with Wannier.jl to be given to the compression algorithm.
 
 using Wannier
+using LineSearches
 
 @doc raw"""
 Apply the unitary matrices contained in wann_model to obtain optimized
@@ -28,7 +29,7 @@ Small hack to provide the angle between axis x and the first axis of the
 function find_π_bond_axis(basis_supercell::PlaneWaveBasis, wannier, wannier_center;
                           debug_sign=1)
 
-    @info "Computing the π_bond axis in polar coordinates"
+    @info "Computing the π_bond axis in polar coordinates" 
     s_orb(α, ζ) = GaussianPolynomial([(0,0,1)], [1.], α, ζ)
     α(λ, θ) = polar_to_cartesian_coords(wannier_center, λ, θ)
 
@@ -37,7 +38,7 @@ function find_π_bond_axis(basis_supercell::PlaneWaveBasis, wannier, wannier_cen
     res = optimize(X->norm(wannier + debug_sign*s_orb(α(X[1],X[2]), X[3])(basis_supercell)),
                    # Guess roughly close to wanted axis by experience.
                    [1/3., -1/2, 2] .+ wannier_center,
-                   ConjugateGradient(linesearch=BackTracking(order=3)))
+                   ConjugateGradient(linesearch=BackTracking(order=3)), Optim.Options(show_trace=true))
     r, θ = res.minimizer[1:2]
 
     # If r is approximately zero the hack failed or the s orbitals have wrong signs.

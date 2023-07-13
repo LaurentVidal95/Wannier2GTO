@@ -25,7 +25,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     residual = Wc.residual
     error = Wc.error
     s = Wc.error_norm
-    residual_norm = Hs_norm(basis_supercell, residual; s)
+    residual_norm = Hˢ_norm(basis_supercell, residual; s)
     basis_functions = Wc.basis_functions
     coefficients = Wc.coefficients
 
@@ -33,6 +33,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     @assert  size(wannier,2)==1 "The wannier function is to be"*
         " given as a single supercell vector"
     @assert norm(wannier) ≈ 1 "The Wannier function must be normalized before compression"
+    # Check that the plane-wave basis is big enough for good num dot products
+    _check_L²_dot_precision(basis_supercell)
 
     # Center of the next basis function to be built
     center = copy(Wc.center)

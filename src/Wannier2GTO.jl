@@ -3,6 +3,7 @@ module Wannier2GTO
 # Core packages
 using LinearAlgebra
 using Optim
+using LineSearches
 using ForwardDiff   # TODO Replace with ReverseDiff or equiv
 # using ReverseDiff # TODO DEBUG
 using DFTK

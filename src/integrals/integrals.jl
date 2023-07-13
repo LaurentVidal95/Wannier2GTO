@@ -6,6 +6,20 @@ symb_to_integral = Dict([:overlap => GaIn.overlap,
                          :ionic => GaIn.ionic,
                          :coulomb => GaIn.coulomb])
 
+function analytic_norm(exps::Vector{Tuple{Int64, Int64, Int64}},
+                       coeffs::Vector{T1}, center::Vector{T2},
+                       spread::T3) where {T1, T2, T3 <: Real}
+    output = zero(spread)
+    TR = float(eltype(center))
+    for ((nx₁,ny₁,nz₁), λ₁) in zip(exps, coeffs)
+        for ((nx₂,ny₂,nz₂), λ₂) in zip(exps, coeffs)
+            output += λ₁*λ₂*symb_to_integral[:overlap](spread, center, nx₁, ny₁, nz₁,
+                                                       spread, center, nx₂, ny₂, nz₂)
+        end
+    end
+    √(output)
+end
+
 function integral(X₁::GaussianPolynomial, X₂::GaussianPolynomial;
                   type=:overlap)
     output = zero(X₁.spread)

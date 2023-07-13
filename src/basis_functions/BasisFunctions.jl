@@ -34,14 +34,14 @@ function optimal_basis_function(Wc, SAGTOs; tol=1e-5)
 
     # Compute optimal coefficients for given SAGTOs
     SAGTOs_Four = [X(basis_SC) for X in SAGTOs]
-    Γ = ThreadsX.map(X->Hs_dot(basis_SC, Wc.residual, X; s), SAGTOs_Four)
-    S = Hs_overlap(basis_SC, SAGTOs_Four; s)
-    optimal_coeffs = filter_small_coeffs.(Hermitian(S)\Γ; tol)
+    Γ = ThreadsX.map(X->Hˢ_dot(basis_SC, Wc.residual, X; s), SAGTOs_Four)
+    S = Hˢ_overlap(basis_supercell, SAGTOs_Four; s)
+    optimal_coeffs = filter_small_coeffs.(S\Γ; tol)
     
     # Assemble optimal basis function and enforce D3 symmetry if needed
     Φ = BasisFunction(optimal_coeffs, SAGTOs)
     !iszero(center - Wc.center) &&  (Φ = enforce_D3_symmetry(Φ))
-    Φ, Hs_norm(basis_SC, Φ(basis_SC) - Wc.residual; s=Wc.error_norm)^2
+    Φ, Hˢ_norm(basis_SC, Φ(basis_SC) - Wc.residual; s=Wc.error_norm)^2
 end
 
 function normalize(Φ::BasisFunction)

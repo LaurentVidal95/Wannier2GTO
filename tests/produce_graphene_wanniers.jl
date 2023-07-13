@@ -52,13 +52,14 @@ function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
         guess = DFTK.guess_amn_hydrogenic(basis, centers, l)
 
         A = DFTK.compute_amn(basis, ψ, guess)
-
+        (wannier_plot) && (WannierIO.write_amn("$prefix.amn", A))
         wann_model = only(run_wannier(
             scfres;
             fileprefix=prefix,
             n_wann,
             A,
             dis_froz_max=0.1,
+            wannier_plot,
         ));
 
         wann_model

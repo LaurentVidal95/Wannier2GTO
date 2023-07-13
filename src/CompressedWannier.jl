@@ -76,19 +76,3 @@ function CompressedWannier(basis_supercell, file)
     CompressedWannier(basis_supercell, TC[], TR[], basis_functions, TC.(data.coefficients),
                       TC[], data.error, data.error_norm)
 end
-
-function fix_coefficients!(Wc::CompressedWannier)
-    basis_functions = []
-    for Φ in Wc.basis_functions
-        SAGTOs = []
-        for X in Φ.SAGTOs
-            prefac = √(integral(X, X; type=:overlap))
-            exps, coeffs = pol_to_arrays(X.pol)
-            push!(SAGTOs, GaussianPolynomial(exps, coeffs ./ prefac, X.center, X.spread))
-        end
-        
-        push!(basis_functions, BasisFunction(Φ.coeffs, SAGTOs))
-    end
-    Wc.basis_functions = basis_functions
-    nothing
-end
