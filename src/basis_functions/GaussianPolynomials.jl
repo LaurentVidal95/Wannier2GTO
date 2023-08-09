@@ -12,26 +12,32 @@ Types are specific for each parameter to be compatible with Forward Diff
 """
 struct GaussianPolynomial{T1<:Real, T2<:Real, F<:Function}
     pol::Polynomial
-    center::Vector{T1}
+    center::AbstractVector{T1}
     spread::T2
     # Hack to avoid boundary problems
     Fourier_transform::F
 end
+
+function pol_to_arrays(pol::Polynomial)
+    exps = Tuple.(eachcol(StaticPolynomials.exponents(pol)))
+    coeffs = pol.coefficients
+    exps, coeffs
+end
+
 function ∂n(h::F, n::Int64, x::T) where {T<:Real, F<:Function}
     (n==0) && (return h(x))
     (n==1) && (return ForwardDiff.derivative(h, x))
     ∂n(y->ForwardDiff.derivative(h, y), n-1, x)
 end
 function GaussianPolynomial(exps::Vector{Tuple{Int64, Int64, Int64}},
-                            coeffs::Vector{T1}, center::Vector{T2},
+                            coeffs::AbstractVector{T1}, center::AbstractVector{T2},
                             spread::T3) where {T1, T2, T3 <: Real}
     # ensure that the given Gaussian Polynomial is normalized
     prefac = analytic_norm(exps, filter_dual.([coeffs, center, spread])...)
-    coeffs ./= prefac
+    coeffs = coeffs ./ prefac
 
     # Construct polynomial part
-    @polyvar x y z
-    
+    @polyvar x y z    
     pol = Polynomial(sum( prod([x,y,z] .^ exps)*λ for (exps, λ) in zip(exps, coeffs) ))
 
     # Fourier part
@@ -82,7 +88,7 @@ end
 # """
 # Compute the Bloch decomposition (stored as Fourier coefficients as in scfres.ψ) of a given
 # GaussianPolynomial using DFTK FFT routines.
-# Suffers from boundary issues when the spread is to high (≥ 1 or so)
+# Suffers from boundary issues when the spread is to high (≥ 1 or so for Ecut=15)
 # """
 # function fft_supercell(basis_supercell::PlaneWaveBasis, X::GaussianPolynomial;
 #                        normalize_SAGTO=true)

@@ -23,7 +23,7 @@ end
 
 function Hˢ_overlap(basis_supercell::PlaneWaveBasis, Xs_fourier; s=0)
     num_aos = length(Xs_fourier)
-    S = zeros(real(eltype(Xs_fourier[1])), num_aos, num_aos)
+    S = zeros(eltype(Xs_fourier[1]), num_aos, num_aos)
     for μ in 1:num_aos
         for ν in μ:num_aos
             S[μ, ν] = Hˢ_dot(basis_supercell, Xs_fourier[μ], Xs_fourier[ν]; s)

@@ -59,6 +59,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         SAGTOs = SAGTO_basis(center, spreads, xy_orders, z_orders)
         Φ, error = optimal_basis_function(Wc, SAGTOs)
 
+        # Zygote.@ignore integral(SAGTOs[1], SAGTOs[2])
         (in_linesearch) && (return error)
         Φ, error
     end
@@ -95,17 +96,18 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
                                  autodiff=:forward).minimizer # make it :reverse
         end
         tmp_kwargs = (;xy_orders, z_orders, in_linesearch=false)
-        Φ_opti, _ = D3_sym ? f(optim_res; center, tmp_kwargs...) : f(optim_res[4:end]; center=optim_res[1:3], tmp_kwargs...)
+        Φ_opti, _ = D3_sym ? f(optim_res; center, tmp_kwargs...) :
+            f(optim_res[4:end]; center=optim_res[1:3], tmp_kwargs...)
 
         # Add new MO to the MO basis and project Wn
         # Normalize before projection to cure conditioning
-        Φ_opti = normalize(basis_supercell, Φ_opti)
+        Φ_opti = normalize(Φ_opti)
         push!(basis_functions, Φ_opti)
         compressed_wannier, coeffs = project_wannier_on_basis(Wc)
 
         # Compute new res and check CV
         residual = wannier .- compressed_wannier
-        error = Hs_norm(basis_supercell, residual; s) / Hs_norm(basis_supercell, wannier; s)
+        error = Hˢ_norm(basis_supercell, residual; s) / Hˢ_norm(basis_supercell, wannier; s)
         (error < tol) && (converged = true)
 
         # TODO: Add step that cures conditioning problems
@@ -124,11 +126,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         info = merge(info, (;Wc, converged, n_iter))
         callback(info)
     end
-    # Store compressed wannier with true coefficients
-    # See "fft_supercell" in "GaussianPolynomials.jl" for further details.
-    Wc = fix_coefficients!(basis_supercell, info.Wc)
-    store(Wc; file)
-    info = merge(info, (;Wc))
+
+    info
 end
 
 # Prototype for ReverseDiff gradient. For now produced memory errors.

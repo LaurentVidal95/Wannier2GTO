@@ -25,6 +25,8 @@ function filter_small_coeffs(z::TC; tol=1e-5) where {TC<:Complex}
 end
 
 function filter_dual(x::T) where T
-    !(eltype(x) <: AbstractFloat) && (return x.value)
+    if (!(eltype(x) <: AbstractFloat) && !(eltype(x) <: Int))
+        return x.value
+    end
     x
 end

@@ -5,7 +5,6 @@ using LinearAlgebra
 using Optim
 using LineSearches
 using ForwardDiff   # TODO Replace with ReverseDiff or equiv
-# using ReverseDiff # TODO DEBUG
 using DFTK
 
 # Fast evaluation of multivariate polynomials
@@ -25,6 +24,8 @@ include("basis_functions/BasisFunctions.jl")
 
 # Struct to store the compressed wannier
 export CompressedWannier
+export translate
+export rotate
 include("CompressedWannier.jl")
 
 # Common stuff
@@ -38,10 +39,11 @@ include("common/data_storage.jl")
 
 # Compression routine
 export compress_graphene_pz_wannier
-include("wannier_preprocessing.jl")
-include("compression.jl")
+include("compression/wannier_preprocessing.jl")
+include("compression/compression.jl")
 
 # Gaussian polynomial analytic
+export integral
 include("integrals/GaIn.jl")
 include("integrals/integrals.jl")
 

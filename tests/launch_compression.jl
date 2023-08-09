@@ -23,13 +23,23 @@ basis_supercell = DFTK.cell_to_supercell(basis)
 # Read Wannier from file instead of re-doing wannierization
 data = W2G.read_wannier_function(joinpath(dir, "wannier_pz_Ecut-50.json"))
 
-# Assemble data in a CompressedWannier format
-Wc = CompressedWannier(basis_supercell, normalize(data.wannier), data.center)
-π_bond = data.π_bond
+# # Assemble data in a CompressedWannier format
+# Wc = CompressedWannier(basis_supercell, normalize(data.wannier), data.center)
+# π_bond = data.π_bond
 
-# Choose H^1 norm for optimization
-s = 1
-Wc.error_norm = s
+# # Choose H^1 norm for optimization
+# s = 1
+# Wc.error_norm = s
 
 #Compress given Wannier
-res = compress_graphene_pz_wannier(Wc, π_bond; max_iter=10, file=dir*"outputs/compressed_wannier.json")
+# res = compress_graphene_pz_wannier(Wc, π_bond; max_iter=10, file=dir*"outputs/compressed_wannier.json")
+
+
+# Use directly compressed Wannier for GaIn interface.
+Wc1 = CompressedWannier(basis_supercell,
+                       joinpath(dir, "outputs/compressed_wannier_55_H1_Ecut50.json"))
+Wc2 = CompressedWannier(basis_supercell,
+                       joinpath(dir, "outputs/compressed_wannier_55_H1.json"))
+
+Wc1.center = data.center
+Wc2.center = data.center

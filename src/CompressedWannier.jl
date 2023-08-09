@@ -1,13 +1,15 @@
 using JSON3
 
-mutable struct CompressedWannier{TR<:Real, TC<:Complex}
+import Base.*, Base.-
+
+mutable struct CompressedWannier{TR<:Real, TC<:Complex, T}
     # Data on the original Wannier function to compress
     basis_supercell :: PlaneWaveBasis
     wannier         :: AbstractArray{TC}
-    center          :: Vector{TR}
+    center          :: AbstractVector{TR}
     # Each MO is a name tuple with a list of coeffs and corresponding SAGTOs
     basis_functions :: Vector{BasisFunction}
-    coefficients    :: Vector{TC} # TODO change to TR...
+    coefficients    :: AbstractVector{T}
     # Optim related
     residual        ::AbstractArray{TC}
     error           ::TR
@@ -18,15 +20,35 @@ end
     CompressedWannier(basis_supercell, Wn_pz, center, BasisFunction[], TC[],  Wn_pz, NaN, error_norm)
 end
 
-function pol_to_arrays(pol::Polynomial)
-    exps = Tuple.(eachcol(StaticPolynomials.exponents(pol)))
-    coeffs = pol.coefficients
-    exps, coeffs
-end
-
 @inline function (Wc::CompressedWannier)(basis_supercell::PlaneWaveBasis)
     Wc.coefficients'*[Φ(basis_supercell) for Φ in Wc.basis_functions]
 end
+
+function translate(Wc::CompressedWannier, R::AbstractVector{T}) where T
+    basis_functions = map(Wc.basis_functions) do Φ
+        translated_SAGTOs = [GaussianPolynomial(X, X.center + R) for X in Φ.SAGTOs]
+        BasisFunction(Φ.coeffs, translated_SAGTOs)
+    end
+    basis_functions = Vector{BasisFunction}(basis_functions)
+    CompressedWannier(Wc.basis_supercell, Wc.wannier, Wc.center + R, basis_functions,
+                      Wc.coefficients, Wc.residual, Wc.error, Wc.error_norm)
+end
+
+"""
+Apply rotation of angle θ to the given CompressedWannier around its center.
+"""
+function rotate(Wc::CompressedWannier, θ::T) where T
+    α0 = Wc.center
+    ℛθ(r) = rot(θ) * (r - α0) + α0
+    basis_functions = map(Wc.basis_functions) do Φ
+        rotated_SAGTOs = [GaussianPolynomial(X, ℛθ(X.center)) for X in Φ.SAGTOs]
+        BasisFunction(Φ.coeffs, rotated_SAGTOs)
+    end
+    basis_functions = Vector{BasisFunction}(basis_functions)
+    CompressedWannier(Wc.basis_supercell, Wc.wannier, Wc.center, basis_functions,
+                      Wc.coefficients, Wc.residual, Wc.error, Wc.error_norm)
+end
+
 """
 TODO: doc
 Store the compressed wannier. Residual is not stored as it can be recomputed easily.
@@ -76,3 +98,10 @@ function CompressedWannier(basis_supercell, file)
     CompressedWannier(basis_supercell, TC[], TR[], basis_functions, TC.(data.coefficients),
                       TC[], data.error, data.error_norm)
 end
+
+function (*)(λ::T, Wc::CompressedWannier) where T
+    new_coeffs = λ .* Wc.coefficients
+    CompressedWannier(Wc.basis_supercell, Wc.wannier, Wc.center, Wc.basis_functions,
+                      new_coeffs, Wc.residual, Wc.error, Wc.error_norm)
+end
+(-)(Wc::CompressedWannier) = -1*Wc
