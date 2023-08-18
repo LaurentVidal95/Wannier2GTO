@@ -1,0 +1,9 @@
+1) Tester l'évaluation des overlaps via "overlap_upper_bound" pour réduire le temps de calcul de S
+1 bis) Comparer à la valeur de <W1 | H | W2> pour aussi réduire le temps de calcul de H.
+
+2) Potentiel a l'air OK via cc_coulomb_ion_.
+
+3) Fabriquer W1 et W2 en translatant ET en tournant de pi/3.
+Vérifier les propriétés analytiques.
+
+4) Ajouter un fichier test qui utilise les trucs du workflow pour assurer que tout va bien.

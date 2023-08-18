@@ -1,10 +1,12 @@
 using Wannier2GTO.GaIn
 
 symb_to_integral = Dict([:overlap => GaIn.overlap,
+                         :overlap_upper_bound => GaIn.overlap_upper_bound,
                          :laplacian => GaIn.laplacian,
                          :kinetic => GaIn.kinetic,
                          :coulomb => GaIn.coulomb,
-                         :atomic => GaIn.atomic]
+                         :atomic => GaIn.atomic,
+                         ]
                         )
 
 function analytic_norm(exps::Vector{Tuple{Int64, Int64, Int64}},
@@ -21,22 +23,20 @@ function analytic_norm(exps::Vector{Tuple{Int64, Int64, Int64}},
     √(output)
 end
 
-function integral(X₁::GaussianPolynomial, X₂::GaussianPolynomial, args...;
-                  type=:overlap)
+function integral(X₁::GaussianPolynomial, X₂::GaussianPolynomial, args...; type=:overlap)
     if isempty(args) && type==:atomic
         error("The position of the atom is required for atom - electron interaction")
     end
 
     output = zero(X₁.spread)
-    TR = float(eltype(X₁.center))
+    TR = float(eltype(X₁.center)) # ???
     for ((nx₁,ny₁,nz₁), λ₁) in zip(pol_to_arrays(X₁.pol)...)
         for ((nx₂,ny₂,nz₂), λ₂) in zip(pol_to_arrays(X₂.pol)...)
-            output += λ₁*λ₂*symb_to_integral[type](X₁.spread, TR.(X₁.center), nx₁, ny₁, nz₁,
-                                                   X₂.spread, TR.(X₂.center), nx₂, ny₂, nz₂,
-                                                   args...)
+                output += λ₁*λ₂*symb_to_integral[type](X₁.spread, TR.(X₁.center), nx₁, ny₁, nz₁,
+                                                       X₂.spread, TR.(X₂.center), nx₂, ny₂, nz₂,
+                                                       args...)
         end
-    end
-
+    end    
     output
 end
 

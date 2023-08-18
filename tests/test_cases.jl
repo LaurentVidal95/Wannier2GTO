@@ -5,6 +5,46 @@ using WannierIO
 using Wannier
 using wannier90_jll
 
+const meV_to_hartree = ustrip(u"Eh_au", 1u"meV")
+const hartree_to_meV = ustrip(u"meV", 1u"Eh_au")
+
+default_lattice_length() = 4.66  # in Bohr
+default_z_axis_length() = 30
+
+struct GrapheneSystem{T<:Real}
+    # Geometry
+    lattice::Matrix{T}
+    atoms::AbstractVector{DFTK.ElementPsp}
+    positions::AbstractVector{AbstractVector{T}}
+    # Tight Binding
+    R_vectors::AbstractVector{AbstractVector{T}}
+    tol::T
+end
+
+# Generic function that works for both graphene and stacked bilayer graphene.
+geometry(G::GrapheneSystem) = (G.lattice, G.atoms, G.positions)
+R_vectors_cart(G::GrapheneSystem) = map(R->G.lattice*R, G.R_vectors)
+
+"""
+    GrapheneSystem(atoms, positions; lattice_length, z_axis_length)
+
+Creates a monolayer or stacked bilayer graphene system through respectively
+[`MonolayerGraphene`](@ref) or [`StackedBilayerGraphene`](@ref).
+"""
+function GrapheneSystem(atoms, positions;
+                        lattice_length=default_lattice_length(),
+                        tol = 1e-8)
+    @assert length(positions) == length(atoms)
+
+    # Assemble Graphene system
+    lz = z_axis_length / lattice_length
+    lattice = lattice_length .* [  1/2     1/2  0;
+                                 -√3/2    √3/2  0;
+                                     0     0   lz]
+    R_vectors = compute_R_vectors(tol)
+    GrapheneSystem(lattice, atoms, position, tol,)
+end
+
 """
 Routines that handle the SCF and wannierization of Graphene with fixed
 parameters.
@@ -94,4 +134,36 @@ function Graphene(; kgrid=[5,5,1], Ecut=15, kshift=zeros(Float64, 3))
     end
 
     (;basis, scf, wannierize, vesta_plot, wannierize_w90)
+end
+
+# TODO: const of function ? Chose a side
+const default_interlayer_dist = 6.45 #bohr TODO type
+
+@doc raw"""
+Define a system with two layers of graphene A and B, aligned (no twist) with the top one (B)
+shifted in the longitudinal direction.
+For a given interlayer distance ``d ≥ 0`` and a disregistry ``y ∈ ℝ²``, the layer A is
+shifted by ``[0, 0, -d/2]`` with respect to the origin and the B layer is shifted by
+``[y₁, y₂, d/2]``.
+ """
+function StackedBilayerGraphene(d_red; #interlayer distance in reduced coordinates
+                                disregistry = zeros(eltype(d),2),
+                                kwargs...)
+    function model()
+        G = Graphene(;)
+        model = G.basis().model
+        z_axis_length = model.lattice[end]
+        d_red = d/z_axis_length
+        shift = [disregistry..., d_red]
+        
+        # Shifted monolayer positions at z=-d/2
+        lattice = model.lattice
+        positions = model.positions .- Ref([0., 0., shift[3]/2])
+        atoms = model.atoms
+        # Add second layer at z=+d/2
+        append!(atoms, atoms)
+        append!(positions, positions .+ Ref(shift))
+        
+        DFTK.Model(lattice, atoms, positions)
+    end
 end
