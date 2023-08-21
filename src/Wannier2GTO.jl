@@ -6,6 +6,8 @@ using Optim
 using LineSearches
 using ForwardDiff   # TODO Replace with ReverseDiff or equiv
 using DFTK
+using DFTK.Unitful
+using DFTK.UnitfulAtomic
 
 # Fast evaluation of multivariate polynomials
 import DynamicPolynomials: @polyvar
@@ -26,7 +28,9 @@ include("basis_functions/BasisFunctions.jl")
 export CompressedWannier
 export translate
 export rotate
+export BilayerGraphene
 include("CompressedWannier.jl")
+include("BilayerGraphene.jl")
 
 # Common stuff
 include("common/Hs_scalar_prods.jl")
@@ -49,5 +53,6 @@ include("integrals/integrals.jl")
 
 export real_hamiltonian_bloc
 include("tight_binding/hamiltonian.jl")
+include("tight_binding/TightBindingModel.jl")
 
 end # module

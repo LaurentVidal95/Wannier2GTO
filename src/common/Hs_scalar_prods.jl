@@ -41,6 +41,7 @@ end
 
 function project_wannier_on_basis(Wc::CompressedWannier)
     s = Wc.error_norm
+    isempty(Wc.basis_supercell) && error("The planewave basis is missing.")
     basis_supercell = Wc.basis_supercell
 
     # Compute the Fourier coefficients of all basis functions on the supercell

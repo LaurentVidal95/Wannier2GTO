@@ -21,6 +21,10 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     # Extract compressed wannier data
     wannier = Wc.wannier
     basis_supercell = Wc.basis_supercell
+
+    # Check that the provided wannier is expressed in the provided planewave basis
+    @assert( length(G_vectors(basis_supercell, basis_supercell.kpoints[1])) == length(wannier) )
+    
     π_bond_center = polar_to_cartesian_coords(Wc.center, π_bond.r, π_bond.θ)
     residual = Wc.residual
     error = Wc.error

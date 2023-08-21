@@ -2,7 +2,7 @@ using Wannier2GTO
 import Wannier2GTO as W2G
 
 dir = joinpath(splitpath(pathof(Wannier2GTO))[1:end-2]..., "workflow")
-include(joinpath(dir,"produce_graphene_wanniers.jl"))
+include(joinpath(dir,"monolayer_graphene.jl"))
 
 # Initial data
 low_params = (; kgrid=[5,5,1], Ecut=15)
@@ -21,7 +21,7 @@ wann_model = G.wannierize(scfres; wannier_plot=false,
 # data = W2G.prepare_for_compression(wann_model, scfres)
 
 # Read Wannier from file instead of re-doing wannierization
-# data = W2G.read_wannier_function(joinpath(dir, "wannier_pz_Ecut-50.json"))
+# data = W2G.read_wannier_function(joinpath(dir, "wannier_functions/wannier_pz_Ecut-50.json"))
 
 # # Assemble data in a CompressedWannier format
 # Wc = CompressedWannier(basis_supercell, normalize(data.wannier), data.center)
