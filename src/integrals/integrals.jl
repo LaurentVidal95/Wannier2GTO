@@ -49,7 +49,7 @@ function integral(Φ₁::BasisFunction, Φ₂::BasisFunction, args...;
             output += λ₁*λ₂*integral(X₁, X₂, args...; type)
         end
     end
-    output       
+    output
 end
 
 function integral(Wc₁::CompressedWannier, Wc₂::CompressedWannier, args...;

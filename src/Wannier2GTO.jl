@@ -51,8 +51,13 @@ export integral
 include("integrals/GaIn.jl")
 include("integrals/integrals.jl")
 
-export real_hamiltonian_bloc
-include("tight_binding/hamiltonian.jl")
+export TightBindingModel
+export R_vectors_cart
+export real_hamiltonian
+export bloch_transform
+include("tight_binding/apply_hamiltonian.jl")
 include("tight_binding/TightBindingModel.jl")
+include("tight_binding/hamiltonian.jl")
+
 
 end # module

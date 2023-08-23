@@ -1,7 +1,7 @@
 import LinearAlgebra.normalize
 
-struct BasisFunction{TC<:Complex}
-    coeffs :: Vector{TC}
+struct BasisFunction{T<:Real}
+    coeffs :: Vector{T}
     SAGTOs # Vector of Gaussian polynomials
 end
 

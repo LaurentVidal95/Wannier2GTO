@@ -105,10 +105,11 @@ function CompressedWannier(file)
             spread = X[4]
             push!(SAGTOs, GaussianPolynomial(exps, coeffs, center, spread))
         end
-        coeffs = TC.(Φ.coeffs)
+        coeffs = T.(Φ.coeffs) # convert from JSON to real
         push!(basis_functions, BasisFunction(coeffs, SAGTOs))
     end
     CompressedWannier(zeros(3), #T.(data.center),
                       basis_functions, T.(data.coefficients), nothing, TC[],
                       TC[], data.error, data.error_norm)
 end
+

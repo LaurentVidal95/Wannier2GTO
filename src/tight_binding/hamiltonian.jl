@@ -1,3 +1,5 @@
+using ProgressMeter
+
 """
    real_hamiltonian_bloc(R::AsbtractVector, W₁::CompressedWannier, W₂::CompressedWannier,
                           positions::AbstractVector)
@@ -12,22 +14,18 @@ The hamiltonian is given for all ``1 ≤ i,j ≤ Nb`` by:
 [H_{\\bm{R}}]_{ij} = \\langle Wᵢ(⋅ - \\bm{R})\\,|\\, H \\,|\\, Wⱼ \\rangle
 ```
 """
-function real_hamiltonian_bloc(R::AbstractVector{T}, basis_functions,
-                               positions::AbstractVector) where {T<:Real}
-    Nb = length(basis_functions)
+function real_hamiltonian(R::AbstractVector{T}, TB::TightBindingModel) where {T<:Real}
+
+    Nb = length(TB.basis_functions)
     Hᴿ = zeros(T, Nb, Nb)
     Sᴿ = zeros(T, Nb, Nb)
     Z_carbon = 6 # TODO check
 
     # Assemble upper half
-    for (i, Wᵢ) in enumerate(basis_functions)
+    for (i, Wᵢ) in enumerate(TB.basis_functions)
         Wᵢᴿ = translate(Wᵢ, R)
-        for (j, Wⱼ) in enumerate(basis_functions[i:end])
-            # kinetic term + electron <-> ion + electron <-> electron integration
-            Hᴿ[i,(j-1)+i] = integral(Wᵢᴿ, Wⱼ; type=:kinetic) +
-                           -Z_carbon * sum(integral(Wᵢᴿ, Wⱼ, R_nuc; type=:atomic) for R_nuc in positions) +
-                           integral(Wᵢᴿ, Wⱼ; type=:coulomb)
-            # TODO: replace by zero when the upperbound is to low
+        for (j, Wⱼ) in enumerate(TB.basis_functions[i:end])
+            Hᴿ[i,(j-1)+i] = hamiltonian_scalar_prod(TB, Wᵢᴿ, Wⱼ)
             Sᴿ[i,(j-1+i)] = integral(Wᵢᴿ, Wⱼ; type=:overlap)
         end
     end
@@ -43,4 +41,41 @@ function real_hamiltonian_bloc(R::AbstractVector{T}, basis_functions,
     Symmetric(Hᴿ), Symmetric(Sᴿ)
 end
 
-# Use premade interpolation in ``Wannier/src/interp/fourier.jl``
+# Time consuming part
+function real_hamiltonian(TB::TightBindingModel, atomic_positions::AbstractVector)
+    Rs_cart = R_vectors_cart(TB)    
+    T = eltype(Rs_cart[1])
+    NR = length(Rs_cart)
+    Nb = length(TB.basis_functions)
+
+    ℍᴿ = zeros(T, Nb, Nb, NR)
+    𝕊ᴿ = zeros(T, Nb, Nb, NR)
+
+    progress = Progress(length(Rs_cart), desc="Computing all blocs")
+    for (iR, R) in enumerate(Rs_cart)
+        Hᴿ, Sᴿ = real_hamiltonian(R, TB.basis_functions, atomic_positions)
+        ℍᴿ[:,:,iR] .= Hᴿ
+        𝕊ᴿ[:,:,iR] .= Sᴿ
+        next!(progress)
+    end
+    ℍᴿ, 𝕊ᴿ
+end
+
+function bloch_transform(kpoints::Vector{Vector{T}}, TB::TightBindingModel,
+                         𝕆ᴿ::Array{T,3}) where {T<:Real}
+    Nb = size(𝕆ᴿ)[1]
+    Nk = length(kpoints)
+    @assert size(𝕆ᴿ)[1] == size(𝕆ᴿ)[2]
+
+    R_vectors = TB.R_vectors
+    R_basis = [W.center for W in TB.basis_functions]
+
+    𝕆ᵏ = zeros(Complex{T}, Nb, Nb, Nk)
+    for (ik, k) in enumerate(kpoints)
+        for (iR, R) in enumerate(R_vectors)
+            prefac = [cis(-2π*dot(R .+ Rᵢ .-Rⱼ, k)) for Rᵢ in R_basis, Rⱼ in R_basis]
+            𝕆ᵏ[:,:,ik] .+= prefac .* @view 𝕆ᴿ[:,:,iR]
+        end
+    end
+    𝕆ᵏ
+end
