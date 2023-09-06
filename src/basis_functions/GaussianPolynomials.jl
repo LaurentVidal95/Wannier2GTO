@@ -71,7 +71,7 @@ function GaussianPolynomial(X::GaussianPolynomial, center)
 end
 
 function (Base.:*)(X1::GaussianPolynomial, X2::GaussianPolynomial;
-                   normalize_SAGTO=true)
+                   normalize_SAGTO=false)
     # Compute new spread and center
     ζ₁ = X1.spread; R₁ = X1.center
     ζ₂ = X2.spread; R₂ = X2.center

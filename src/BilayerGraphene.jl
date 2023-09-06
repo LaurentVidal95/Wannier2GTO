@@ -65,6 +65,8 @@ function BilayerGraphene(disregistry, angle;
 end
 
 const default_convergence_parameters = (;Ecut=30, kgrid=[5,5,1], scf_tol=1e-5)
+const low_convergence_parameters = (;Ecut=15, kgrid=[3,3,1], scf_tol=1e-3)
+
 function compute_scfres(BG::BilayerGraphene;
                         terms=nothing,
                         convergence_parameters = default_convergence_parameters,

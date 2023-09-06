@@ -1,30 +1,29 @@
-struct TightBindingModel{T<:Real, TC<:Complex}
+struct TightBindingModel{T<:Real}
     # unit cell data
     system::BilayerGraphene{T}
     basis_functions::AbstractVector
-    hamiltonian::TightBindingHamiltonian{TC}
-    
     # Neighbours information
     R_vectors::AbstractArray
-    # atomic_positions::AbstractVector
     tol::T
+    # Effective potential data in case of a periodic system
+    scfres
 end
 
 # Generic function that works for both graphene and stacked bilayer graphene.
 geometry(TB::TightBindingModel) = geometry(TB.system)
 R_vectors_cart(TB::TightBindingModel) = map(R->TB.system.lattice*R, TB.R_vectors)
 
-function TightBindingModel(BG::BilayerGraphene, potential::AbstractArray=Complex[];
+function TightBindingModel(BG::BilayerGraphene, scfres=nothing;
                            tol=1e-8,
                            basis_function_file="compressed_wannier_55_H1.json",
-                           terms = [:kinetic, :PBE_potential])
+                           )
 
     # Extract CompressedWannier center at zero from data file
     path_dir = joinpath(splitpath(pathof(Wannier2GTO))[1:end-2])
     datadir = joinpath(path_dir, "data")
     W = CompressedWannier(joinpath(datadir, basis_function_file))
 
-    periodic = length(BG.positions) == 4
+    periodic = iszero(BG.angle) # Only SBG for now
     if !(periodic)
         error("Non periodic system are still to be implemented")
     end        
@@ -47,12 +46,13 @@ function TightBindingModel(BG::BilayerGraphene, potential::AbstractArray=Complex
     positions = [W.center for W in [W₁, W₂, W₃, W₄]] # only for periodic systems
 
     # Compute KS potential if needed
-    if isempty(potential) && (:PBE_potential ∈ terms)
-        error("The KS potential has to be provided if :PBE_potential is in the Hamiltonian")
+    if isnothing(scfres) && (periodic)
+        @warn("The result of an SCF computation has to be provided to"*
+              " compute de KS potential contribution to the Hamiltonian")
     end
 
     # Construct the Hamiltonian (Need to compute the KS potential with SCF routine)
-    TightBindingModel(BG, [W₁, W₂, W₃, W₄], hamiltonian(terms, potential), R_vectors, tol)
+    TightBindingModel(BG, [W₁, W₂, W₃, W₄], R_vectors, tol, scfres)
 end
 
 function get_R_vectors(W::CompressedWannier, BG::BilayerGraphene;
@@ -77,7 +77,6 @@ function Base.show(io::IO, TB::TightBindingModel)
     println(io, "System: ", TB.system)
     println(io, "Tight-binding parameters: ")
     println(io, "- number of basis functions in the unit cell: $(length(TB.basis_functions))")
-    println(io, "- hamiltonian terms: $(string.(TB.hamiltonian.terms)...)")
     println(io, "- number of R vectors: $(length(TB.R_vectors))")
     println(io, "- tol: $(TB.tol)")
 end
