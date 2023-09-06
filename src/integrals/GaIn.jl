@@ -55,5 +55,4 @@ function atomic(ζ1::T1, R1::AbstractVector{T2}, nx1::Int, ny1::Int, nz1::Int,
                                     Ref(Cint(ny2))::Ptr{Cint}, Ref(Cint(nz2))::Ptr{Cint}, R_at::Ptr{Cdouble})::Cdouble
 end
 
-
 end

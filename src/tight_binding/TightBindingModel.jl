@@ -1,23 +1,23 @@
-struct TightBindingModel{T<:Real}
+struct TightBindingModel{T<:Real, TC<:Complex}
     # unit cell data
     system::BilayerGraphene{T}
     basis_functions::AbstractVector
-    hamiltonian_terms::Vector{Symbol}
+    hamiltonian::TightBindingHamiltonian{TC}
     
     # Neighbours information
     R_vectors::AbstractArray
-    atomic_positions::AbstractVector
+    # atomic_positions::AbstractVector
     tol::T
 end
 
 # Generic function that works for both graphene and stacked bilayer graphene.
-geometry(TB::TightBindingModel) = (TB.system.lattice, TB.system.atoms, TB.system.positions)
+geometry(TB::TightBindingModel) = geometry(TB.system)
 R_vectors_cart(TB::TightBindingModel) = map(R->TB.system.lattice*R, TB.R_vectors)
 
-function TightBindingModel(BG::BilayerGraphene;
+function TightBindingModel(BG::BilayerGraphene, potential::AbstractArray=Complex[];
                            tol=1e-8,
                            basis_function_file="compressed_wannier_55_H1.json",
-                           terms = [:kinetic, :atomic, :coulomb])
+                           terms = [:kinetic, :PBE_potential])
 
     # Extract CompressedWannier center at zero from data file
     path_dir = joinpath(splitpath(pathof(Wannier2GTO))[1:end-2])
@@ -45,8 +45,14 @@ function TightBindingModel(BG::BilayerGraphene;
 
     R_vectors = get_R_vectors(W, BG; tol)
     positions = [W.center for W in [W₁, W₂, W₃, W₄]] # only for periodic systems
-    
-    TightBindingModel(BG, [W₁, W₂, W₃, W₄], terms, R_vectors, positions, tol)
+
+    # Compute KS potential if needed
+    if isempty(potential) && (:PBE_potential ∈ terms)
+        error("The KS potential has to be provided if :PBE_potential is in the Hamiltonian")
+    end
+
+    # Construct the Hamiltonian (Need to compute the KS potential with SCF routine)
+    TightBindingModel(BG, [W₁, W₂, W₃, W₄], hamiltonian(terms, potential), R_vectors, tol)
 end
 
 function get_R_vectors(W::CompressedWannier, BG::BilayerGraphene;
@@ -65,4 +71,13 @@ function get_R_vectors(W::CompressedWannier, BG::BilayerGraphene;
     end
 
     [[i,j,0] for i in -i_max:i_max, j in -i_max:i_max]
+end
+
+function Base.show(io::IO, TB::TightBindingModel)
+    println(io, "System: ", TB.system)
+    println(io, "Tight-binding parameters: ")
+    println(io, "- number of basis functions in the unit cell: $(length(TB.basis_functions))")
+    println(io, "- hamiltonian terms: $(string.(TB.hamiltonian.terms)...)")
+    println(io, "- number of R vectors: $(length(TB.R_vectors))")
+    println(io, "- tol: $(TB.tol)")
 end

@@ -23,7 +23,7 @@ function real_hamiltonian(R::AbstractVector{T}, TB::TightBindingModel) where {T<
 
     # Assemble upper half
     for (i, Wᵢ) in enumerate(TB.basis_functions)
-        Wᵢᴿ = translate(Wᵢ, R)
+        Wᵢᴿ = translate(Wᵢ, -R)
         for (j, Wⱼ) in enumerate(TB.basis_functions[i:end])
             Hᴿ[i,(j-1)+i] = hamiltonian_scalar_prod(TB, Wᵢᴿ, Wⱼ)
             Sᴿ[i,(j-1+i)] = integral(Wᵢᴿ, Wⱼ; type=:overlap)

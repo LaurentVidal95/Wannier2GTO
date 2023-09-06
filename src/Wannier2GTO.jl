@@ -55,9 +55,9 @@ export TightBindingModel
 export R_vectors_cart
 export real_hamiltonian
 export bloch_transform
-include("tight_binding/apply_hamiltonian.jl")
+include("tight_binding/TightBindingHamiltonian.jl")
 include("tight_binding/TightBindingModel.jl")
-include("tight_binding/hamiltonian.jl")
+include("tight_binding/tb_system.jl")
 
 
 end # module
