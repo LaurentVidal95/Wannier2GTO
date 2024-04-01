@@ -41,7 +41,6 @@ end
 
 function project_wannier_on_basis(Wc::CompressedWannier)
     s = Wc.error_norm
-    isempty(Wc.basis_supercell) && error("The planewave basis is missing.")
     basis_supercell = Wc.basis_supercell
 
     # Compute the Fourier coefficients of all basis functions on the supercell
@@ -50,7 +49,8 @@ function project_wannier_on_basis(Wc::CompressedWannier)
     Φs_Four = [Φ(basis_supercell) for Φ in Φs]
 
     # Compute the projection
-    S = Hˢ_overlap(basis_supercell, Φs_Four; s) # Replace by fast analytic overlap if compatible with AD
+    S = Hˢ_overlap(basis_supercell, Φs_Four; s) # Replace by fast analytic
+                                                # overlap if compatible with AD
     Χ = [Hˢ_dot(basis_supercell, Wc.wannier, Φ; s) for Φ in Φs_Four] # slow numeric dot prod
 
     # TODO: add cure for conditioning if needed.

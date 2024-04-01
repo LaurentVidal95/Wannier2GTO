@@ -36,8 +36,8 @@ function optimal_basis_function(Wc, SAGTOs; tol=1e-5)
     SAGTOs_Four = [X(basis_supercell) for X in SAGTOs]
     Γ = ThreadsX.map(X->Hˢ_dot(basis_supercell, Wc.residual, X; s), SAGTOs_Four)
     S = Hˢ_overlap(basis_supercell, SAGTOs_Four; s)
-    optimal_coeffs = filter_small_coeffs.(S\Γ; tol)
-    
+    optimal_coeffs = safereal(filter_small_coeffs.(S\Γ; tol))
+
     # Assemble optimal basis function and enforce D3 symmetry if needed
     Φ = BasisFunction(optimal_coeffs, SAGTOs)
     !iszero(center - Wc.center) &&  (Φ = enforce_D3_symmetry(Φ))

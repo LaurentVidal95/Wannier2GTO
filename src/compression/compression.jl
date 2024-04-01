@@ -49,18 +49,20 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
     info = (; Wc, converged, n_iter)
     callback(info)
 
-    # Objective function to optimize at each iteration. The function produce an optimal
-    # basis function (which best approximate the current residual) as linear combination of
-    # SAGTOs with given spreads and center, respecting the symmetries encoded in xy_orders and z_orders.
-    # When "in_linesearch", the function only returns the Hˢ error of approximation of the
-    # residual by the optimal basis function.
-    function f(spreads::Vector{T1}; center::Vector{T2}, xy_orders, z_orders,
+    # Objective function to optimize at each iteration. The function produce an
+    # optimal basis function (which best approximate the current residual) as
+    # linear combination of SAGTOs with given spreads and center, respecting the
+    # symmetries encoded in xy_orders and z_orders.  When "in_linesearch", the
+    # function only returns the Hˢ error of approximation of the residual by the
+    # optimal basis function.
+    function f(spreadlog::T1; center::Vector{T2}, xy_orders, z_orders,
                in_linesearch=true) where {T1, T2<:Real}
+        ζ = exp(spreadlog)
         # Hack to avoid conditioning problems with small spreads
-        findmin(spreads)[1] < ζ_min && return Inf
+        ζ < ζ_min && return Inf
 
         # Compute optimal basis function for given spreads, center and residual (stored in Wc)
-        SAGTOs = SAGTO_basis(center, spreads, xy_orders, z_orders)
+        SAGTOs = SAGTO_basis(center, ζ, xy_orders, z_orders)
         Φ, error = optimal_basis_function(Wc, SAGTOs)
 
         # Zygote.@ignore integral(SAGTOs[1], SAGTOs[2])
@@ -80,28 +82,28 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         n_SAGTOs = length(xy_orders) * length(z_orders)
 
         # Optimize w.r. to spreads or center and spreads if non centered SAGTOs.
-        spreads_init = ones(n_SAGTOs) .* 1/2
+        spreadlog_init = log(1/2)
         optim_res = NaN
         if D3_sym
             tmp_kwargs = (; center, xy_orders, z_orders)
-            optim_res = optimize(spreads -> f(spreads; tmp_kwargs...),
-                                 spreads_init,
+            optim_res = optimize(spreadlog -> f(only(spreadlog); tmp_kwargs...),
+                                 [spreadlog_init],
                                  optim_method,
                                  optim_options,
                                  autodiff=:forward).minimizer # make it :reverse
         else
             tmp_kwargs=(;xy_orders, z_orders)
-            optim_res = optimize(center_and_spreads -> f(center_and_spreads[4:end];
-                                                         center=center_and_spreads[1:3],
-                                                         tmp_kwargs...),
-                                 [π_bond_center..., spreads_init...],
+            optim_res = optimize(center_and_spread -> f(center_and_spread[4];
+                                                        center=center_and_spread[1:3],
+                                                        tmp_kwargs...),
+                                 [π_bond_center..., spreadlog_init],
                                  optim_method,
                                  optim_options,
                                  autodiff=:forward).minimizer # make it :reverse
         end
         tmp_kwargs = (;xy_orders, z_orders, in_linesearch=false)
-        Φ_opti, _ = D3_sym ? f(optim_res; center, tmp_kwargs...) :
-            f(optim_res[4:end]; center=optim_res[1:3], tmp_kwargs...)
+        Φ_opti, _ = D3_sym ? f(only(optim_res); center, tmp_kwargs...) :
+            f(optim_res[4]; center=optim_res[1:3], tmp_kwargs...)
 
         # Add new MO to the MO basis and project Wn
         # Normalize before projection to cure conditioning
