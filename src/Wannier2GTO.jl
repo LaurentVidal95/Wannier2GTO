@@ -5,6 +5,8 @@ using LinearAlgebra
 using Optim
 using LineSearches
 using ForwardDiff   # TODO Replace with ReverseDiff or equiv
+using Zygote
+using Random
 using DFTK
 using DFTK.Unitful
 using DFTK.UnitfulAtomic
@@ -51,6 +53,13 @@ export integral
 include("integrals/GaIn.jl")
 include("integrals/julia_integrals.jl")
 include("integrals/integrals.jl")
+
+# Phase B: joint optimization of SAGTOs
+export JointLayout, init_params, joint_loss, run_joint_optim
+include("joint_optim/parametrization.jl")
+include("joint_optim/init.jl")
+include("joint_optim/loss.jl")
+include("joint_optim/runner.jl")
 
 export TightBindingModel
 export R_vectors_cart
