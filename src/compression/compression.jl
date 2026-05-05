@@ -16,7 +16,12 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
                   tol=1e-2,       # maximum attaigned for now is ≈ 5%
                   optim_method=ConjugateGradient(),
                   optim_options=Optim.Options(g_abstol=1e-5, show_trace=false),
+                  ## Inner solve regularization (phase A)
+                  regularization::Symbol=:none,    # :none|:tikhonov|:svd_truncation|:pivoted_cholesky
+                  regularization_param=nothing,    # ε_rel for :tikhonov, rel_tol for the others
                   file="compressed_wannier.json")
+    # Build the regularized inner solver once; captured by the closure below.
+    solve_S = _make_inner_solver(regularization, regularization_param)
 
     # Extract compressed wannier data
     wannier = Wc.wannier
@@ -63,7 +68,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
 
         # Compute optimal basis function for given spreads, center and residual (stored in Wc)
         SAGTOs = SAGTO_basis(center, ζ, xy_orders, z_orders)
-        Φ, error = optimal_basis_function(Wc, SAGTOs)
+        Φ, error = optimal_basis_function(Wc, SAGTOs; solve_S)
 
         # Zygote.@ignore integral(SAGTOs[1], SAGTOs[2])
         (in_linesearch) && (return error)

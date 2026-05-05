@@ -3,5 +3,6 @@ w90_output
 Manifest.toml
 data
 workflow/wannier_functions
+workflow/diag_outputs
 .DS_Store
 **/.DS_Store
