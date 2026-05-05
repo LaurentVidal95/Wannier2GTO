@@ -1,6 +1,12 @@
 using Wannier2GTO.GaIn
 
-symb_to_integral = Dict([:overlap => GaIn.overlap,
+# `:overlap` is routed to the pure-Julia implementation in `julia_integrals.jl`,
+# which is the only integral type required during the compression phase
+# (used by `analytic_norm` and `BasisFunctions.normalize`). Other types still
+# delegate to the GaIn C++ library; calling them without GaIn available will
+# error at first use, which is acceptable until the downstream tight-binding
+# stage.
+symb_to_integral = Dict([:overlap => overlap_julia,
                          :overlap_upper_bound => GaIn.overlap_upper_bound,
                          :laplacian => GaIn.laplacian,
                          :kinetic => GaIn.kinetic,

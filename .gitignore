@@ -1,0 +1,7 @@
+*.vts
+w90_output
+Manifest.toml
+data
+workflow/wannier_functions
+.DS_Store
+**/.DS_Store

@@ -14,4 +14,4 @@ TB = W2G.TightBindingModel(BG; tol=1e-0)
 W₁, W₂, W₃, W₄ = TB.basis_functions
 
 # Read Wannier from file instead of re-doing wannierization
-data = W2G.read_wannier_function(joinpath(dir, "wannier_functions/wannier_pz_Ecut-50.json"))
+# data = W2G.read_wannier_function(joinpath(dir, "wannier_functions/wannier_pz_Ecut-50.json"))

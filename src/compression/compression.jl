@@ -69,7 +69,7 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
         (in_linesearch) && (return error)
         Φ, error
     end
-
+    
     while ( (info.n_iter < max_iter) && !info.converged )
         n_iter += 1;
 
@@ -89,8 +89,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
             optim_res = optimize(spreadlog -> f(only(spreadlog); tmp_kwargs...),
                                  [spreadlog_init],
                                  optim_method,
-                                 optim_options,
-                                 autodiff=:forward).minimizer # make it :reverse
+                                 optim_options
+                                 ).minimizer # make it :reverse
         else
             tmp_kwargs=(;xy_orders, z_orders)
             optim_res = optimize(center_and_spread -> f(center_and_spread[4];
@@ -98,8 +98,8 @@ function compress_graphene_pz_wannier(Wc::CompressedWannier, π_bond;
                                                         tmp_kwargs...),
                                  [π_bond_center..., spreadlog_init],
                                  optim_method,
-                                 optim_options,
-                                 autodiff=:forward).minimizer # make it :reverse
+                                 optim_options
+                                 ).minimizer # make it :reverse
         end
         tmp_kwargs = (;xy_orders, z_orders, in_linesearch=false)
         Φ_opti, _ = D3_sym ? f(only(optim_res); center, tmp_kwargs...) :

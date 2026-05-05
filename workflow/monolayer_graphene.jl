@@ -17,7 +17,7 @@ function Graphene(; d=20u"Å", kwargs...)
         atoms     = [C, C]
         positions = [[0.0, 0.0, 0.0], [1//3, 2//3, 0.0]]
         model  = model_PBE(lattice, atoms, positions)
-        basis  = PlaneWaveBasis(model; Ecut, kgrid)
+        basis  = PlaneWaveBasis(model; kwargs...)
     end
     function scf(n_bands_converge=15)
         a = 2.641u"Å"  # Graphene Lattice constant

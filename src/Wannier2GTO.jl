@@ -49,6 +49,7 @@ include("compression/compression.jl")
 # Gaussian polynomial analytic
 export integral
 include("integrals/GaIn.jl")
+include("integrals/julia_integrals.jl")
 include("integrals/integrals.jl")
 
 export TightBindingModel
