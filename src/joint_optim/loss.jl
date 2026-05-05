@@ -20,3 +20,42 @@ function joint_inner_solve(Φs::Vector{BasisFunction},
     c = solver(S, Γ)
     real(c)   # eigenvalues of S are real, c should be real up to noise
 end
+
+"""
+Joint-fit loss: H¹ squared residual after Tikhonov-regularized
+projection of `w_z` onto the basis described by `flat`.
+
+Parameters
+- `flat`: free parameters (length `flat_dim(layout)`)
+- `layout`: parameter layout descriptor
+- `w_z_fourier`: target wannier in plane-wave Fourier (supercell Γ point)
+- `basis_supercell`: discretization basis
+- `log_ζ_min`, `log_ζ_max`: spread box bounds (passed to encoding)
+- `π_bond_unit`: unit vector along π-bond axis
+- `s`: Sobolev exponent (default 1 for H¹)
+- `ε`: Tikhonov regularization
+- `max_xy_order`, `max_z_order`: SAGTO orders
+
+Returns a positive real scalar.
+"""
+function joint_loss(flat::AbstractVector, layout::JointLayout,
+                    w_z_fourier::AbstractVector,
+                    basis_supercell::PlaneWaveBasis;
+                    log_ζ_min, log_ζ_max,
+                    π_bond_unit::AbstractVector,
+                    s::Int = 1,
+                    ε::Real = 1e-8,
+                    max_xy_order::Int = 3,
+                    max_z_order::Int = 3)
+    Φs = params_to_basis_functions(flat, layout;
+                                    log_ζ_min, log_ζ_max,
+                                    π_bond_unit=π_bond_unit,
+                                    max_xy_order, max_z_order)
+    Φs_Four = [Φ(basis_supercell) for Φ in Φs]
+    Γ = [Hˢ_dot(basis_supercell, w_z_fourier, Φ; s=s) for Φ in Φs_Four]
+    S = Hˢ_overlap(basis_supercell, Φs_Four; s=s)
+    solver = _make_inner_solver(:tikhonov, ε)
+    c = real(solver(S, Γ))
+    residual = w_z_fourier - sum(c[i] .* Φs_Four[i] for i in eachindex(c))
+    Hˢ_norm(basis_supercell, residual; s=s)^2
+end
