@@ -55,7 +55,7 @@ include("integrals/julia_integrals.jl")
 include("integrals/integrals.jl")
 
 # Phase B: joint optimization of SAGTOs
-export JointLayout, flat_dim, get_centered, get_pibond, log_ζ_from_u, log_ζ_to_u, init_params, joint_loss, run_joint_optim
+export JointLayout, flat_dim, get_centered, get_pibond, log_ζ_from_u, log_ζ_to_u, params_to_basis_functions, init_params, joint_loss, run_joint_optim
 include("joint_optim/parametrization.jl")
 include("joint_optim/init.jl")
 include("joint_optim/loss.jl")

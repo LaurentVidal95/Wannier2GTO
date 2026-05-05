@@ -42,3 +42,43 @@ end
     log_ζ_neg = log_ζ_from_u(-100.0, log_ζ_min, log_ζ_max)
     @test log_ζ_neg ≈ log_ζ_min rtol=1e-10
 end
+
+@testset "params_to_basis_functions: shape" begin
+    layout = JointLayout(N_centered=2, N_pibond=1)
+    flat = zeros(flat_dim(layout))    # all zeros
+    log_ζ_min, log_ζ_max = log(1e-2), log(4.0)
+    π_bond_dir = [cos(-π/6), sin(-π/6), 0.0]
+
+    Φs = params_to_basis_functions(flat, layout;
+                                    log_ζ_min, log_ζ_max,
+                                    π_bond_unit=π_bond_dir,
+                                    max_xy_order=3, max_z_order=3)
+    @test length(Φs) == 3
+    # Centered Φ_1, Φ_2: 6 SAGTOs each
+    @test length(Φs[1].SAGTOs) == 6
+    @test length(Φs[2].SAGTOs) == 6
+    # π-bond Φ_3: 4 SAGTOs × 3 D3 rotations = 12 SAGTOs
+    @test length(Φs[3].SAGTOs) == 12
+end
+
+@testset "params_to_basis_functions: centers and spreads" begin
+    layout = JointLayout(N_centered=1, N_pibond=1)
+    flat = zeros(flat_dim(layout))
+    flat[1] = 0.0                  # centered u = 0 -> log ζ at midpoint
+    flat[8] = 2.0                  # π-bond r = 2.0
+    flat[9] = 1.0                  # π-bond u = 1.0
+    log_ζ_min, log_ζ_max = log(1e-2), log(4.0)
+    π_bond_dir = [cos(-π/6), sin(-π/6), 0.0]
+
+    Φs = params_to_basis_functions(flat, layout;
+                                    log_ζ_min, log_ζ_max,
+                                    π_bond_unit=π_bond_dir,
+                                    max_xy_order=3, max_z_order=3)
+    # Φ_1 centered at origin
+    @test Φs[1].SAGTOs[1].center ≈ zeros(3)
+    # Φ_2 first SAGTO at r * π_bond_dir, the others at the rotated positions
+    @test Φs[2].SAGTOs[1].center ≈ 2.0 .* π_bond_dir rtol=1e-12
+    # Spread reflects sigmoid(u=1.0) ≈ 0.731
+    expected_log_ζ = log(1e-2) + (log(4.0) - log(1e-2)) * (1 / (1 + exp(-1.0)))
+    @test log(Φs[2].SAGTOs[1].spread) ≈ expected_log_ζ rtol=1e-10
+end
