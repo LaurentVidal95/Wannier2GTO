@@ -26,3 +26,19 @@ end
     @test r_p == 15.0 && u_p == 16.0
     @test λ_p == [17.0, 18.0, 19.0, 20.0]
 end
+
+@testset "log ζ encoding round-trip" begin
+    log_ζ_min = log(1e-2)
+    log_ζ_max = log(4.0)
+    for ζ in (0.05, 0.5, 1.0, 3.0, 3.99)
+        log_ζ = log(ζ)
+        u = log_ζ_to_u(log_ζ, log_ζ_min, log_ζ_max)
+        log_ζ_back = log_ζ_from_u(u, log_ζ_min, log_ζ_max)
+        @test log_ζ_back ≈ log_ζ rtol=1e-12
+    end
+    # Out-of-bounds u stays in the box
+    log_ζ_huge = log_ζ_from_u(100.0, log_ζ_min, log_ζ_max)
+    @test log_ζ_huge ≈ log_ζ_max rtol=1e-10
+    log_ζ_neg = log_ζ_from_u(-100.0, log_ζ_min, log_ζ_max)
+    @test log_ζ_neg ≈ log_ζ_min rtol=1e-10
+end

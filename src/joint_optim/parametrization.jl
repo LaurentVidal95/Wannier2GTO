@@ -41,3 +41,25 @@ function get_pibond(flat::AbstractVector, layout::JointLayout, j::Int)
     λ = flat[offset + 3 : offset + block]
     (r, u, λ)
 end
+
+"Standard logistic sigmoid."
+@inline _sigmoid(u) = inv(one(u) + exp(-u))
+
+"Logit (inverse sigmoid), valid for x ∈ (0, 1)."
+@inline _logit(x) = log(x / (one(x) - x))
+
+"""
+Decode a latent `u ∈ ℝ` into `log ζ ∈ [log_ζ_min, log_ζ_max]` via
+`log ζ = log_ζ_min + (log_ζ_max - log_ζ_min) · σ(u)`.
+"""
+@inline function log_ζ_from_u(u, log_ζ_min, log_ζ_max)
+    log_ζ_min + (log_ζ_max - log_ζ_min) * _sigmoid(u)
+end
+
+"""
+Encode a target `log ζ ∈ (log_ζ_min, log_ζ_max)` to its latent `u`.
+"""
+@inline function log_ζ_to_u(log_ζ, log_ζ_min, log_ζ_max)
+    x = (log_ζ - log_ζ_min) / (log_ζ_max - log_ζ_min)
+    _logit(x)
+end
