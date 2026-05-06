@@ -24,11 +24,20 @@ function filter_small_coeffs(z::TC; tol=1e-5) where {TC<:Complex}
     a_new + im*b_new
 end
 
+"""
+Strip ForwardDiff `Dual` numbers from a scalar or array of values, returning
+the underlying concrete numerics. Used as a guard around code paths (e.g.
+the analytic normalization in `GaussianPolynomial`) that do not need to be
+differentiated and would error on `Dual` inputs.
+"""
 function filter_dual(x::T) where T
-    if (!(eltype(x) <: AbstractFloat) && !(eltype(x) <: Int))
-        return x.value
+    if eltype(x) <: AbstractFloat || eltype(x) <: Int
+        return x
     end
-    x
+    if x isa AbstractArray
+        return map(el -> el.value, x)
+    end
+    return x.value
 end
 
 # TMP

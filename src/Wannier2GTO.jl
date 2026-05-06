@@ -4,8 +4,7 @@ module Wannier2GTO
 using LinearAlgebra
 using Optim
 using LineSearches
-using ForwardDiff   # TODO Replace with ReverseDiff or equiv
-using Zygote
+using ForwardDiff   # Phase B: AD backend for joint_loss (validated via FD)
 using Random
 using DFTK
 using DFTK.Unitful

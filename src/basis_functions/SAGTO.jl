@@ -54,7 +54,7 @@ respective spread in ζs, where the polynomial parts orders are given by xy_orde
 and z_orders.
 """
 function SAGTO_basis(α::Vector{T1}, ζ::T2, xy_orders, z_orders) where {T1, T2 <:Real}
-    # Polynomial structure (exps, coeffs) is integer-valued: freeze outside AD tape.
-    polynoms = Zygote.ignore(() -> symmetry_adapted_polynoms(xy_orders, z_orders))
+    # Import all polynomial parameters in a single table and create corresponding AOs
+    polynoms = symmetry_adapted_polynoms(xy_orders, z_orders)
     [GaussianPolynomial(pol[1], pol[2], α, ζ) for pol in polynoms]
 end

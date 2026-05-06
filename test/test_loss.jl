@@ -5,7 +5,6 @@ using DFTK.Unitful
 using Wannier2GTO
 import Wannier2GTO as W2G
 using LinearAlgebra
-using Zygote
 
 # Heavy fixture: bring `Graphene` into scope and build the supercell basis
 # once for all testsets in this file.
@@ -47,14 +46,27 @@ end
     @test L1 != L2
 end
 
-@testset "joint_loss: Zygote gradient is finite" begin
+using ForwardDiff
+
+@testset "joint_loss: ForwardDiff gradient is finite and matches FD" begin
     layout = JointLayout(N_centered=2, N_pibond=1)
     flat = init_params(MersenneTwister(0), layout)
     f = θ -> joint_loss(θ, layout, _W_FOURIER, _BASIS_SC;
                         log_ζ_min=log(1e-2), log_ζ_max=log(4.0),
                         π_bond_unit=_π_BOND_DIR)
-    g = first(Zygote.gradient(f, flat))
+    g = ForwardDiff.gradient(f, flat)
     @test length(g) == flat_dim(layout)
     @test all(isfinite, g)
     @test norm(g) > 0
+
+    # Validate against central finite differences on a few representative
+    # components: one centered u, one centered λ, one π-bond u, one π-bond λ.
+    ε = 1e-5
+    for idx in (1, 4, 16, 19)
+        flat_p = copy(flat); flat_p[idx] += ε
+        flat_m = copy(flat); flat_m[idx] -= ε
+        fd = (f(flat_p) - f(flat_m)) / (2ε)
+        rel_err = abs(fd - g[idx]) / max(abs(fd), abs(g[idx]), 1e-10)
+        @test rel_err < 1e-5
+    end
 end
