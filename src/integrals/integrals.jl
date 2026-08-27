@@ -1,15 +1,17 @@
 using Wannier2GTO.GaIn
 
-# `:overlap` is routed to the pure-Julia implementation in `julia_integrals.jl`,
-# which is the only integral type required during the compression phase
-# (used by `analytic_norm` and `BasisFunctions.normalize`). Other types still
-# delegate to the GaIn C++ library; calling them without GaIn available will
-# error at first use, which is acceptable until the downstream tight-binding
-# stage.
+# `:overlap`, `:laplacian` and `:kinetic` are routed to the pure-Julia
+# implementations in `julia_integrals.jl`. Together they cover the whole
+# compression phase (`analytic_norm`, `BasisFunctions.normalize`) and the
+# one-body tight-binding chain (H = -½∇² + V_KS, the local potential term
+# being handled in Fourier by `potential_scalar_prod`).
+# The remaining types (two-body ERIs, only needed for a future Hubbard-like
+# model) still delegate to the GaIn C++ library and error at first use when
+# GaIn is unavailable.
 symb_to_integral = Dict([:overlap => overlap_julia,
                          :overlap_upper_bound => GaIn.overlap_upper_bound,
-                         :laplacian => GaIn.laplacian,
-                         :kinetic => GaIn.kinetic,
+                         :laplacian => laplacian_julia,
+                         :kinetic => kinetic_julia,
                          :coulomb => GaIn.coulomb,
                          :atomic => GaIn.atomic,
                          ]
