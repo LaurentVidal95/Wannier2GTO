@@ -100,6 +100,27 @@ end
     end
 end
 
+@testset "compare_onsite_kinetic: single-Gaussian triple agreement" begin
+    # A lone normalized s-Gaussian playing both roles: its own grid transform is
+    # the "reference" Wannier, its analytic integral the "Gaussian" side. Grid,
+    # analytic and closed form (3ζ/2) must all agree.
+    ζ = 1.0
+    X = W2G.GaussianPolynomial([(0, 0, 0)], [1.0], zeros(3), ζ)   # normalized
+    Φ = W2G.BasisFunction([1.0], [X])
+    # NB: the field is typed `Vector{BasisFunction}` (unparameterized), so the
+    # element type must be annotated — `[Φ]` would be a Vector{BasisFunction{Float64}}.
+    Wc = W2G.CompressedWannier(zeros(3), W2G.BasisFunction[Φ], [1.0],
+                               _BASIS_SC, ComplexF64[], ComplexF64[], 0.0, 0.0)
+    w_fourier = normalize(X(_BASIS_SC))
+
+    out = W2G.compare_onsite_kinetic(Wc, w_fourier, _BASIS_SC)
+    @test out.T_gto ≈ 3ζ / 2 rtol = 1e-10          # closed form
+    @test out.rel_err < 1e-3                        # grid vs analytic
+    @test out.rel_err_per_norm < 1e-3
+    @test out.norm_ref ≈ 1.0 rtol = 1e-12
+    @test out.norm_gto ≈ 1.0 rtol = 1e-6
+end
+
 @testset "Hˢ_overlap(Ms; s=1) is GaIn-free and SPD" begin
     Ms = [W2G.GaussianPolynomial([(0, 0, 1)], [1.0], zeros(3), ζ) for ζ in (0.5, 1.0, 2.0)]
     S = W2G.Hˢ_overlap(Ms; s=1)

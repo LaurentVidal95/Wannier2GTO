@@ -64,6 +64,7 @@ export TightBindingModel
 export R_vectors_cart
 export real_hamiltonian
 export bloch_transform
+export compare_onsite_kinetic
 include("tight_binding/hamiltonian_scalar_product.jl")
 include("tight_binding/TightBindingModel.jl")
 include("tight_binding/tb_system.jl")
