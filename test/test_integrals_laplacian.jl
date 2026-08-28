@@ -91,6 +91,39 @@ const _GRID_PAIRS = [
     end
 end
 
+"L² overlap on the plane-wave grid."
+_grid_overlap(X1::W2G.GaussianPolynomial, X2::W2G.GaussianPolynomial) =
+    real(dot(X1(_BASIS_SC), X2(_BASIS_SC)))
+
+@testset "off-center SAGTOs with polynomial degree ≥ 1" begin
+    # Regression guard. The analytic path once expanded monomials in ABSOLUTE
+    # coordinates (rⁿ) while the Fourier path — and `translate`, `rotate`,
+    # `enforce_D3_symmetry`, `SAGTO_basis` — use them RELATIVE to the center,
+    # (r-α)ⁿ. The two agree only when α = 0, which is all that
+    # `_check_L²_dot_precision` ever exercised. They diverged badly otherwise:
+    # ⟨s@0, px@[1,0,0]⟩ gave +0.1785 analytically vs -0.6184 on the grid.
+    pairs = [
+        ("s(1.0)@0 / px(0.5)@[1,0,0]",
+         W2G.GaussianPolynomial([(0, 0, 0)], [1.0], zeros(3), 1.0),
+         W2G.GaussianPolynomial([(1, 0, 0)], [1.0], [1.0, 0.0, 0.0], 0.5)),
+        ("s(1.0)@0 / px(0.5)@[2,0,0]",
+         W2G.GaussianPolynomial([(0, 0, 0)], [1.0], zeros(3), 1.0),
+         W2G.GaussianPolynomial([(1, 0, 0)], [1.0], [2.0, 0.0, 0.0], 0.5)),
+        ("pz(1.2)@0 / dxz(0.7)@[0.8,0.3,0]",
+         W2G.GaussianPolynomial([(0, 0, 1)], [1.0], zeros(3), 1.2),
+         W2G.GaussianPolynomial([(1, 0, 1)], [1.0], [0.8, 0.3, 0.0], 0.7)),
+        ("dz2(0.9)@[0.4,0,0] / pz(0.6)@[-0.5,0.2,0]",
+         W2G.GaussianPolynomial([(0, 0, 2)], [1.0], [0.4, 0.0, 0.0], 0.9),
+         W2G.GaussianPolynomial([(0, 0, 1)], [1.0], [-0.5, 0.2, 0.0], 0.6)),
+    ]
+    for (label, X1, X2) in pairs
+        @testset "$label" begin
+            @test W2G.integral(X1, X2; type=:overlap)   ≈ _grid_overlap(X1, X2)   atol = 2e-3
+            @test W2G.integral(X1, X2; type=:laplacian) ≈ _grid_laplacian(X1, X2) atol = 5e-3
+        end
+    end
+end
+
 @testset "laplacian_julia: symmetry" begin
     for (label, X1, X2) in _GRID_PAIRS
         @testset "$label" begin

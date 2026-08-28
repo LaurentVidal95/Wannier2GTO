@@ -1,7 +1,12 @@
 """
 Contains all parameters to describe a gaussian-polynomial g such that:
-``g(x) = ( ∑_{(n_x,n_z,n_z)} λ_{(n_x,n_y,n_z)}x^{n_x}y^{n_y}z^{n_z} ) 
+``g(x) = ( ∑_{(n_x,n_y,n_z)} λ_{(n_x,n_y,n_z)}(x-α_x)^{n_x}(y-α_y)^{n_y}(z-α_z)^{n_z} )
                                 * exp(-ζ*norm([x,y,z] - α)^2)``
+
+The polynomial part is expressed in coordinates **relative to the center** α
+(standard quantum-chemistry convention). This is what makes `translate` and
+`rotate` genuine translations/rotations of the function, and what makes
+symmetry-adapted polynomials symmetric about their own center.
 Parameters are:
    • ``pol``, a StaticPolynomial.jl object that allow fast multivariate
    polynomial evalutation.
@@ -57,7 +62,9 @@ function SAGTO_fourier_transform(exps, coeffs, center, spread)
 end
 
 function (X::GaussianPolynomial)(A::AbstractArray)
-    pol_part = evaluate.(Ref(X.pol), A)
+    # The polynomial is expressed in coordinates relative to the center, so it
+    # must be evaluated at (r - α) — see the convention note in julia_integrals.jl.
+    pol_part = evaluate.(Ref(X.pol), map(r -> r .- X.center, A))
     exp_part = ThreadsX.map(R->exp(-X.spread*norm(R .- X.center)^2), A)
     pol_part .* exp_part
 end
