@@ -86,3 +86,61 @@ function compare_onsite_kinetic(Wc::CompressedWannier, w_fourier::AbstractVector
        rel_err_per_norm = abs(T_gto_per_norm - T_ref_per_norm) / abs(T_ref_per_norm),
        norm_ref = sqrt(norm²_ref), norm_gto = sqrt(norm²_gto))
 end
+
+@doc raw"""
+Hopping comparison, second link of the tight-binding validation chain:
+``S(R) = \langle w_0, w_R\rangle`` and
+``T(R) = \langle w_0, -\tfrac12\nabla^2 w_R\rangle`` from the true plane-wave
+Wannier vs its Gaussian-compressed counterpart. `R_cart` is Cartesian, Bohr.
+
+- reference: exact periodic translation ``w(\cdot-R) \leftrightarrow
+  w_G e^{-iG\cdot R}``, then grid dot products (no new machinery);
+- Gaussian: `translate(Wc, R_cart)` then native `integral`.
+
+The hoppings of a real Wannier are real; the imaginary parts of the reference
+values are numerical leakage and asserted small, not returned.
+
+Beware small denominators on distant hoppings: `rel_err_*` divides by the
+reference value, `abs_err_*_per_T0` divides by the on-site kinetic ``T(0)`` —
+report both (design note 09).
+"""
+function compare_hopping(Wc::CompressedWannier, w_fourier::AbstractVector,
+                         basis_supercell::PlaneWaveBasis, R_cart::AbstractVector)
+    @assert length(R_cart) == 3 "R_cart must be a 3-vector, got $(length(R_cart))"
+    @assert all(isfinite, w_fourier) "non-finite coefficients in the reference Wannier"
+    kpt = only(basis_supercell.kpoints)
+    Gs = G_vectors_cart(basis_supercell, kpt)
+    @assert length(w_fourier) == length(Gs) "Wannier/basis mismatch"
+
+    phase = [cis(-dot(G, R_cart)) for G in Gs]
+    wR = w_fourier .* phase
+    G² = [sum(abs2, G) for G in Gs]
+
+    S_ref_c = dot(w_fourier, wR)                 # ⟨w₀, w_R⟩
+    T_ref_c = 0.5 * dot(w_fourier, G² .* wR)     # ⟨w₀, -½∇² w_R⟩
+    norm²_ref = real(dot(w_fourier, w_fourier))
+    T0_ref = 0.5 * real(dot(w_fourier, G² .* w_fourier))  # on-site scale
+
+    IMAG_TOL = 1e-6  # real-Wannier sanity: imaginary leakage bound (relative)
+    @assert abs(imag(S_ref_c)) ≤ IMAG_TOL * norm²_ref "Im S(R) leakage: $(imag(S_ref_c))"
+    @assert abs(imag(T_ref_c)) ≤ IMAG_TOL * abs(T0_ref) "Im T(R) leakage: $(imag(T_ref_c))"
+    S_ref, T_ref = real(S_ref_c), real(T_ref_c)
+
+    WcR = translate(Wc, R_cart)
+    S_gto = integral(Wc, WcR; type=:overlap)
+    T_gto = integral(Wc, WcR; type=:kinetic)
+    norm²_gto = real(integral(Wc, Wc; type=:overlap))
+
+    # Norm-corrected values (translation is unitary: ‖w_R‖ = ‖w₀‖).
+    S_ref_n, T_ref_n = S_ref / norm²_ref, T_ref / norm²_ref
+    S_gto_n, T_gto_n = S_gto / norm²_gto, T_gto / norm²_gto
+
+    (; S_ref = S_ref_n, S_gto = S_gto_n,
+       T_ref = T_ref_n, T_gto = T_gto_n,
+       T0_ref = T0_ref / norm²_ref,
+       rel_err_S = abs(S_gto_n - S_ref_n) / abs(S_ref_n),
+       rel_err_T = abs(T_gto_n - T_ref_n) / abs(T_ref_n),
+       abs_err_S_per_T0 = abs(S_gto_n - S_ref_n) / abs(T0_ref / norm²_ref),
+       abs_err_T_per_T0 = abs(T_gto_n - T_ref_n) / abs(T0_ref / norm²_ref),
+       norm_ref = sqrt(norm²_ref), norm_gto = sqrt(norm²_gto))
+end
