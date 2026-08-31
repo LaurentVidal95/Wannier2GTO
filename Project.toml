@@ -6,6 +6,7 @@ version = "0.1.0"
 [deps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 DFTK = "acf6eb54-70d9-11e9-0013-234b7a5f5337"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 DynamicPolynomials = "7c1d4256-1411-5781-91ec-d7bc3513ac07"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
