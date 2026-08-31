@@ -72,3 +72,27 @@ end
     @test outp.S_ref ≈ outm.S_ref      rtol = 1e-9
     @test outp.T_ref ≈ outm.T_ref      rtol = 1e-9
 end
+
+@testset "translate(BasisFunction) and reference_hopping" begin
+    ζ = 0.7
+    g = W2G.GaussianPolynomial([(0, 0, 0)], [1.0], zeros(3), ζ)
+    Φ = W2G.BasisFunction([1.0], [g])
+    R = [0.4, -0.2, 0.9]
+    ΦR = W2G.translate(Φ, R)
+    # Same closed form as the CompressedWannier path.
+    @test W2G.integral(Φ, ΦR; type=:overlap) ≈ exp(-ζ * sum(abs2, R) / 2)  rtol = 1e-10
+
+    basis = tiny_basis()
+    kpt = only(basis.kpoints)
+    w_real = randn(basis.fft_size...)
+    w = DFTK.fft(basis, kpt, complex.(w_real))
+    w = w / norm(w)
+    out0 = W2G.reference_hopping(w, basis, zeros(3))
+    @test out0.S_ref ≈ 1.0  rtol = 1e-12
+    @test out0.T_ref ≈ out0.T0_ref  rtol = 1e-12
+    # Must agree with compare_hopping's reference side.
+    Wc = single_gaussian_Wc(ζ)
+    Rb = [1.1, -0.4, 0.6]
+    @test W2G.reference_hopping(w, basis, Rb).S_ref ≈ W2G.compare_hopping(Wc, w, basis, Rb).S_ref  rtol = 1e-12
+    @test W2G.reference_hopping(w, basis, Rb).T_ref ≈ W2G.compare_hopping(Wc, w, basis, Rb).T_ref  rtol = 1e-12
+end

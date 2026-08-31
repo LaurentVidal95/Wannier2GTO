@@ -53,22 +53,29 @@ include("integrals/GaIn.jl")
 include("integrals/julia_integrals.jl")
 include("integrals/integrals.jl")
 
-# Phase B: joint optimization of SAGTOs
-export JointLayout, flat_dim, get_centered, get_pibond, log_ζ_from_u, log_ζ_to_u, params_to_basis_functions, init_params, joint_loss, run_joint_optim, run_lbfgs_once, LBFGSResult
-include("joint_optim/parametrization.jl")
-include("joint_optim/init.jl")
-include("joint_optim/loss.jl")
-include("joint_optim/runner.jl")
-
+# Tight-binding / hopping machinery (included before joint_optim: `loss.jl`
+# needs the `HoppingTargets` type for its penalty).
 export TightBindingModel
 export R_vectors_cart
 export real_hamiltonian
 export bloch_transform
 export compare_onsite_kinetic
 export compare_hopping
+export reference_hopping
 include("tight_binding/hamiltonian_scalar_product.jl")
+export HoppingTargets, hopping_R_sets, build_hopping_targets
+include("tight_binding/hopping_targets.jl")
 include("tight_binding/TightBindingModel.jl")
 include("tight_binding/tb_system.jl")
+
+# Phase B: joint optimization of SAGTOs
+export JointLayout, flat_dim, get_centered, get_pibond, log_ζ_from_u, log_ζ_to_u, params_to_basis_functions, init_params, joint_loss, run_joint_optim, run_lbfgs_once, LBFGSResult
+export gto_hoppings, hopping_penalty
+export evaluate_hoppings, hopping_criteria
+include("joint_optim/parametrization.jl")
+include("joint_optim/init.jl")
+include("joint_optim/loss.jl")
+include("joint_optim/runner.jl")
 
 
 end # module

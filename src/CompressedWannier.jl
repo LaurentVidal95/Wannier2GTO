@@ -30,12 +30,13 @@ end
 end
 
 # Operations on Compressed Wannier
+function translate(Φ::BasisFunction, R::AbstractVector)
+    BasisFunction(Φ.coeffs,
+                  [GaussianPolynomial(X, X.center + R) for X in Φ.SAGTOs])
+end
+
 function translate(Wc::CompressedWannier, R::AbstractVector{T}) where T
-    basis_functions = map(Wc.basis_functions) do Φ
-        translated_SAGTOs = [GaussianPolynomial(X, X.center + R) for X in Φ.SAGTOs]
-        BasisFunction(Φ.coeffs, translated_SAGTOs)
-    end
-    basis_functions = Vector{BasisFunction}(basis_functions)
+    basis_functions = Vector{BasisFunction}(map(Φ -> translate(Φ, R), Wc.basis_functions))
     CompressedWannier(Wc.center + R, basis_functions, Wc.coefficients,
                       Wc.basis_supercell, Wc.wannier, Wc.residual, Wc.error, Wc.error_norm)
 end
