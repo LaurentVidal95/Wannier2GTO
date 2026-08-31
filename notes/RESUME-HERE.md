@@ -1,60 +1,51 @@
-# Reprise — état au 5 mai 2026
+# Reprise — état au 31 août 2026 (soir)
 
 ## Où on en est
 
-Phase B en cours d'exécution via `superpowers:subagent-driven-development`.
+**Loss hopping-ciblée : implémentée et committée en entier** (design
+[12](12-design-loss-hoppings.md) + biblio [12b](12b-biblio-loss-hoppings.md),
+plan [13](13-plan-loss-hoppings.md), HEAD `fc7018c`). 131 tests verts.
 
-**9 tâches sur 12 faites** :
-- ✅ Task 1: deps & module skeleton (`a8218bf`)
-- ✅ Task 2: `JointLayout` + flat ↔ structured (`c0795097`)
-- ✅ Task 3: sigmoid encoding pour log ζ (`f6fd1bc`)
-- ✅ Task 4: `params_to_basis_functions` avec D3 (`f3bc173`)
-- ✅ Task 5: `init_params` heuristique (`0a0b284`)
-- ✅ Task 6: `joint_inner_solve` Tikhonov (`bc44c11`)
-- ✅ Task 7: `joint_loss` H¹ via variable projection (`833cd94`)
-- ✅ Task 8 v2: gradient ForwardDiff validé (`c9b5d19`)
-- ✅ Task 9: `run_lbfgs_once` (`4087c4f`)
-- ⏳ Task 10: K-restarts + persistance — **à faire**
-- ⏳ Task 11: smoke workflow — **à faire**
-- ⏳ Task 12: comparaison baseline phase A — **à faire**
+- `reference_hopping` / `HoppingTargets` / précalcul des cibles (seed 1234,
+  `data/` gitignoré → régénérer via
+  `W2G_ECUT=15 julia --project=. workflow/precompute_hopping_targets.jl`) ;
+- `gto_hoppings` + `hopping_penalty` branchés dans `joint_loss`
+  (ForwardDiff vert sans relâchement de types) ;
+- `run_joint_optim` (ex-Task 10 phase B) avec passthrough μ/ν ;
+- évaluation par critère (PASS/FAIL indépendants, demande de Laurent) ;
+- `workflow/joint_compression_hoppings.jl` : scan μ apparié (μ ∈ {0,1,10,100,1000},
+  ν=μ, MASTER_SEED partagé = paires contrôlées — ne pas "corriger" ça).
 
-## Décision en suspens
+## En attente : les runs (côté Laurent, sur cluster)
 
-Le benchmark Task 9 a montré le coût du gradient ForwardDiff (~7.5 s / iter à
-20 paramètres, extrapolé à ~42 s / iter à 113 paramètres) :
-
-| Run | Coût estimé |
-|---|---|
-| Smoke (N=10, K=3, 50 iter, Ecut=15) | ~30 min |
-| Baseline (N=15, K=5, 200 iter, Ecut=15) | ~12 h |
-| Ecut=30 baseline | ~60 h (cluster) |
-
-J'avais proposé trois options :
-
-- **(A) On continue ForwardDiff** : Tasks 10-11, smoke local, baseline overnight ou cluster
-- **(B) On tente Enzyme maintenant** : potentiellement 5× plus rapide mais risque (cf. échec Zygote)
-- **(C) Run scaled-down d'abord** : N=10, K=3, max_iter=100 → ~2.5 h laptop pour un proof-of-concept
-
-Et recommandé **(C) puis (A)**. **Validation utilisateur en attente** au moment de la pause.
+Le smoke local a été stoppé (trop long laptop). Laurent lance sur cluster :
+précalcul cibles puis smoke Ecut 15 (`W2G_MAX_ITER=30`), puis si concluant les
+runs sérieux Ecut 50 (`W2G_MAX_ITER=200`, monter N_CENTERED/N_PIBOND/K dans le
+script). Sanity précalcul : intra a1 T_ref ≈ 1.30e-2 (Ecut 15) / 3.89e-2
+(Ecut 50) ; inter AA S_ref ≈ −4.95e-2 / −5.52e-2.
 
 ## Pour reprendre
 
-1. Reouvre la session : `claude --continue` depuis le répertoire du projet
-2. Ma première phrase à la reprise sera de te re-poser la question (C+A) ou (B) — tu m'as dit "Mince, je vais devoir m'arrêter là momentanément" sans avoir répondu
-3. Si tu valides (C+A) : je dispatche Task 10 (orchestration K-restarts), puis Task 11 (smoke), puis on lance le smoke et on analyse
+1. Demander les logs (`workflow/diag_outputs/joint_hoppings_*.log`).
+2. Écrire `notes/14-bilan-loss-hoppings-smoke.md` : tableau μ ↦ (H¹, critères
+   1-4), quel critère mord, trade-off, go/no-go Ecut 50 (plan 13, Task 8).
+3. Critères (design 12 §5) : (1) relerr T(a₁) ≤ 5 % ; (2) signes corrects
+   validation si |T_ref| > 5e-4 ; (3) |S(a₁)| ≤ 1e-3 ; (4) H¹ ≤ 1.5× jumeau
+   μ=0. Attention : si μ=0 n'atteint pas ~5.6 % H¹ (niveau greedy), l'écart
+   assumé du plan 13 (init `init_params` au lieu de greedy) devient le suspect
+   n°1 → mini-design encodage greedy→JointLayout.
+4. Ensuite : approche B (t(R) complet, scfres L-2b — piste
+  `../../TBG/TwistedBilayerGraphene.jl`, chapitre de thèse dispo sur demande)
+  en validation finale ancrée littérature (t₁ ≈ −2.7 eV, t₂/t₁).
 
 ## Repères techniques
 
-- HEAD courant : `4087c4f Phase B: single-run L-BFGS with ForwardDiff gradients`
-- Tests : `julia --project=. test/test_loss.jl` (10 tests verts), `julia --project=. test/test_init.jl` (3 testsets verts), `julia --project=. test/test_parametrization.jl` (5 testsets verts)
-- Smoke pipeline : `julia --project=. -e '...'` + `include("test/test_loss.jl")` charge le `_BASIS_SC` (DFTK supercell, ~30 s) puis l'optim peut tourner
-- Limites identifiées :
-  - Cold start ForwardDiff ≈ 10 min de compilation
-  - Warm gradient ≈ 7.5 s à 20 params, ~42 s à 113 params
-  - 30% GC time, 207 GB allocs / 10-iter run → ForwardDiff alloue beaucoup
-
-## Spécifications de référence
-
-- `notes/03-design-phase-B.md` — design (architecture, hyperparams, success criteria)
-- `notes/04-plan-phase-B.md` — plan d'implémentation 12 tâches
-- `notes/02-bilan-phase-A.md` — résultats phase A (greedy 8.6% à 11 fonctions)
+- Tests : `test_hoppings.jl` (18), `test_hopping_targets.jl` (30),
+  `test_loss_hoppings.jl` (11), `test_loss.jl` (10),
+  `test_integrals_laplacian.jl` (62) — tous fichier par fichier.
+- v2 documentées non implémentées (design 12 §2) : lagrangien augmenté ;
+  formulation riemannienne "shift-orthonormalité" — décision Laurent (sa
+  thèse partie 1 : Stiefel/Flag).
+- Contexte scientifique : bilan [11](11-bilan-validation-hoppings.md) (T ordre
+  1, signes faux, orthonormalité violée) ; position actée : T doit être bon
+  *en soi*, pas de compensation V_KS (non transportable au TBG).
