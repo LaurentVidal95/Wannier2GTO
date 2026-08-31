@@ -80,3 +80,41 @@ function HoppingTargets(file::String)
                    Vector{Float64}(d.S_ref), Vector{Float64}(d.T_ref),
                    Float64(d.T0_ref), Vector{Int}(d.ortho_idx))
 end
+
+@doc raw"""
+Norm-corrected GTO hoppings vs targets, one row per entry: values, errors
+(relative and in units of ``T(0)``), sign check. Pure data — printing is the
+caller's concern.
+"""
+function evaluate_hoppings(Φs::AbstractVector{<:BasisFunction}, c::AbstractVector,
+                           targets::HoppingTargets)
+    norm² = gto_hoppings(Φs, c, zeros(3)).S
+    map(eachindex(targets.labels)) do i
+        h = gto_hoppings(Φs, c, targets.Rs[i])
+        Sn, Tn = h.S / norm², h.T / norm²
+        (; label = targets.labels[i], set = targets.sets[i],
+           S_ref = targets.S_ref[i], S_gto = Sn,
+           T_ref = targets.T_ref[i], T_gto = Tn,
+           rel_err_T = abs(Tn - targets.T_ref[i]) / abs(targets.T_ref[i]),
+           abs_err_T_per_T0 = abs(Tn - targets.T_ref[i]) / abs(targets.T0_ref),
+           sign_ok = sign(Tn) == sign(targets.T_ref[i]))
+    end
+end
+
+# Design note 12 §5 thresholds. Criteria 1 and 3 are measured on "intra a1"
+# (training: they test achievability of the loss's own target); criterion 2 on
+# the validation set (generalization). Criterion 4 (H¹ ≤ 1.5× the μ=0 twin) is
+# computed by the workflow script, which owns both runs of the pair.
+function hopping_criteria(rows, targets::HoppingTargets;
+                          tol_relT::Real = 0.05, tol_S::Real = 1e-3,
+                          T_sign_floor::Real = 5e-4)
+    i1 = findfirst(r -> r.label == "intra a1", rows)
+    @assert !isnothing(i1) "targets must contain an 'intra a1' entry"
+    val = [r for r in rows if r.set == :validation && abs(r.T_ref) > T_sign_floor]
+    [(name = "relerr_T(a1) ≤ 5%", value = rows[i1].rel_err_T,
+      pass = rows[i1].rel_err_T ≤ tol_relT),
+     (name = "validation signs", value = count(r -> !r.sign_ok, val),
+      pass = all(r -> r.sign_ok, val)),
+     (name = "|S(a1)| ≤ 1e-3", value = abs(rows[i1].S_gto),
+      pass = abs(rows[i1].S_gto) ≤ tol_S)]
+end

@@ -54,3 +54,33 @@ end
     @test loaded.T0_ref ≈ targets.T0_ref
     @test loaded.ortho_idx == targets.ortho_idx
 end
+
+@testset "evaluate_hoppings + hopping_criteria" begin
+    ζ = 0.7
+    g = W2G.GaussianPolynomial([(0, 0, 0)], [1.0], zeros(3), ζ)
+    Φs = W2G.BasisFunction[W2G.BasisFunction([1.0], [g])]
+    c = [1.0]
+    R1 = [1.0, 0.0, 0.0]; R2 = [0.0, 0.0, 1.5]
+    h1 = W2G.gto_hoppings(Φs, c, R1); h2 = W2G.gto_hoppings(Φs, c, R2)
+    # Targets: entry 1 = training "intra a1" met exactly; entry 2 = validation
+    # with a deliberately wrong reference sign.
+    targets = W2G.HoppingTargets(["intra a1", "val x"], [:training, :validation],
+                                 [R1, R2], [h1.S, h2.S], [h1.T, -h2.T],
+                                 1.5, [1])
+    rows = W2G.evaluate_hoppings(Φs, c, targets)
+    @test length(rows) == 2
+    @test rows[1].rel_err_T ≈ 0.0  atol = 1e-12
+    @test rows[1].sign_ok
+    @test !rows[2].sign_ok                      # wrong sign detected
+
+    crit = W2G.hopping_criteria(rows, targets)
+    @test length(crit) == 3
+    c1 = crit[findfirst(x -> x.name == "relerr_T(a1) ≤ 5%", crit)]
+    @test c1.pass
+    @test c1.value ≈ 0.0  atol = 1e-12
+    c2 = crit[findfirst(x -> x.name == "validation signs", crit)]
+    @test !c2.pass                              # |T_ref| = h2.T > floor, sign wrong
+    c3 = crit[findfirst(x -> x.name == "|S(a1)| ≤ 1e-3", crit)]
+    @test c3.value ≈ abs(h1.S)  rtol = 1e-10    # here S(a1) is large → FAIL
+    @test !c3.pass
+end
