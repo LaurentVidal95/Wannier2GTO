@@ -1,5 +1,6 @@
 using Optim
 using LineSearches
+using Printf
 using JSON3
 using Dates
 using Random
@@ -43,7 +44,8 @@ function run_lbfgs_once(flat_init::AbstractVector, layout::JointLayout,
                         ε::Real = 1e-8,
                         targets::Union{Nothing, HoppingTargets} = nothing,
                         μ::Real = 0.0,
-                        ν::Real = 0.0)
+                        ν::Real = 0.0,
+                        verbose::Bool = false)
     f = θ -> joint_loss(θ, layout, w_z_fourier, basis_supercell;
                         log_ζ_min, log_ζ_max,
                         π_bond_unit=π_bond_unit, s=s, ε=ε,
@@ -51,8 +53,16 @@ function run_lbfgs_once(flat_init::AbstractVector, layout::JointLayout,
     g! = (G, θ) -> (G .= ForwardDiff.gradient(f, θ); nothing)
 
     history = Float64[]
+    t_start = time()
     cb = function (state)
         push!(history, state.value)
+        if verbose
+            # Live progress for batch logs (flushed: SLURM buffers stdout).
+            println("    iter ", lpad(state.iteration, 3), "  loss = ",
+                    @sprintf("%.6e", state.value), "  elapsed = ",
+                    round(time() - t_start; digits=1), "s")
+            flush(stdout)
+        end
         false   # keep going
     end
 
@@ -109,7 +119,8 @@ function run_joint_optim(layout::JointLayout,
                          ε::Real = 1e-8,
                          targets::Union{Nothing, HoppingTargets} = nothing,
                          μ::Real = 0.0,
-                         ν::Real = 0.0)
+                         ν::Real = 0.0,
+                         verbose::Bool = false)
     timestamp = Dates.format(now(), "yyyymmdd-HHMMSS")
     output_dir = joinpath(output_root, "run_" * timestamp)
     mkpath(output_dir)
@@ -124,8 +135,12 @@ function run_joint_optim(layout::JointLayout,
                              log_ζ_min, log_ζ_max,
                              π_bond_unit=π_bond_unit,
                              max_iter, g_abstol, f_reltol, s, ε,
-                             targets, μ, ν)
+                             targets, μ, ν, verbose)
         push!(results, res)
+        println("    restart done: loss_init=", first(res.loss_history),
+                "  loss_final=", res.loss_final, "  iters=", res.iterations,
+                "  wallclock=", round(res.wallclock_seconds; digits=1), "s")
+        flush(stdout)
         @info "  loss_init=$(first(res.loss_history))  loss_final=$(res.loss_final)" *
               "  iters=$(res.iterations)  wallclock=$(round(res.wallclock_seconds; digits=1))s"
         # Per-restart persistence

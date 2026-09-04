@@ -32,7 +32,11 @@ const MAX_ITER    = parse(Int, get(ENV, "W2G_MAX_ITER", "100"))
 const ζ_MIN       = 1e-2
 const ζ_MAX       = ECUT / 4.0
 const ε_TIKHONOV  = 1e-8
-const MUS         = [0.0, 1e0, 1e1, 1e2, 1e3]   # μ scan; ν = μ (design §2)
+# μ scan; ν = μ (design §2). Override with W2G_MUS (comma-separated) to split
+# the scan into one SLURM job per μ — e.g. W2G_MUS=10 for a single value. The
+# paired summary (criterion 4) then needs the μ=0 job's H¹ from its own log.
+const MUS         = [parse(Float64, m) for m in
+                     split(get(ENV, "W2G_MUS", "0,1,10,100,1000"), ",")]
 const H1_REGRESSION_FACTOR = 1.5                 # criterion 4 threshold
 
 const ROOT = joinpath(splitpath(pathof(Wannier2GTO))[1:end-2]...)
@@ -71,7 +75,12 @@ for μ in MUS
     res = W2G.run_joint_optim(layout, w_z_fourier, basis_supercell;
                               K=K_RESTARTS, master_seed=MASTER_SEED,
                               max_iter=MAX_ITER, ε=ε_TIKHONOV, kw...,
-                              targets=(μ > 0 ? targets : nothing), μ, ν)
+                              targets=(μ > 0 ? targets : nothing), μ, ν,
+                              verbose=true,
+                              # Per-μ output root: concurrent per-μ SLURM jobs
+                              # must never share a run_<timestamp> directory.
+                              output_root=joinpath(ROOT, "workflow", "joint_outputs",
+                                                   "Ecut$(ECUT)_mu$(μ)"))
     best = res.restart_results[res.best_idx]
     Φs, c = rebuild(best.flat_final)
     # H¹ part alone (comparable across μ): recompute loss without penalty.
@@ -102,6 +111,17 @@ end
 println("\n", "=" ^ 70)
 println("PAIRED SUMMARY (criterion 4: H¹ ≤ $(H1_REGRESSION_FACTOR)× the μ=0 twin)")
 println("=" ^ 70)
+if !haskey(results, 0.0)
+    println("μ = 0 twin not in this job (W2G_MUS split): criterion 4 is computed")
+    println("against the H¹ of the μ = 0 job's log when assembling the bilan.")
+    for μ in MUS
+        r = results[μ]
+        c123 = join([cr.pass ? "PASS" : "FAIL" for cr in r.crit], " ")
+        @printf("%-10.1e H¹ rel err = %.4f%% │ criteria 1-3: %s\n",
+                μ, 100 * sqrt(r.h1²), c123)
+    end
+    exit(0)
+end
 h1_twin = results[0.0].h1²
 @printf("%-10s %14s %10s %6s │ criteria 1-3\n", "μ", "H¹ rel err", "vs μ=0", "C4")
 for μ in MUS
