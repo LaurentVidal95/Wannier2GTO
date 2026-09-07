@@ -26,7 +26,7 @@ const KGRID       = [5, 5, 1]
 const D           = 10.0u"Å"
 const N_CENTERED  = 5
 const N_PIBOND    = 5
-const K_RESTARTS  = 3
+const K_RESTARTS  = parse(Int, get(ENV, "W2G_K", "3"))   # W2G_K=1: single seed (cheap scan)
 const MASTER_SEED = 42          # shared across the whole scan (paired runs)
 const MAX_ITER    = parse(Int, get(ENV, "W2G_MAX_ITER", "100"))
 const ζ_MIN       = 1e-2
