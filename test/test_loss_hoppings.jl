@@ -66,3 +66,28 @@ end
     G0 = ForwardDiff.gradient(θ -> W2G.joint_loss(θ, layout, w, basis; kw...), flat)
     @test !(G ≈ G0)   # the penalty actually contributes to the gradient
 end
+
+@testset "joint_loss with penalty: ForwardDiff gradient vs finite differences" begin
+    # Regression for the `filter_dual` normalization bug (Sept 2026): the H¹
+    # gradient was FD-validated in phase B, but the analytic-integral path of
+    # the penalty reads normalized SAGTO coefficients directly, so its ∂/∂ζ
+    # must be checked separately. Spread parameters are the ones that broke.
+    basis = tiny_basis()
+    kpt = only(basis.kpoints)
+    w = DFTK.fft(basis, kpt, complex.(randn(basis.fft_size...)))
+    w = w / norm(w)
+    layout = W2G.JointLayout(N_centered=1, N_pibond=1)
+    flat = W2G.init_params(W2G.MersenneTwister(11), layout)
+    kw = (log_ζ_min=log(1e-2), log_ζ_max=log(4.0), π_bond_unit=[1.0, 0.0, 0.0])
+    targets = W2G.HoppingTargets(["intra a1", "inter AA"], [:training, :training],
+                                 [[1.0, 0.0, 0.0], [0.3, 0.2, 1.2]],
+                                 [0.0, -0.05], [0.01, -0.001], 1.5, [1])
+    f = θ -> W2G.joint_loss(θ, layout, w, basis; kw..., targets, μ=10.0, ν=10.0)
+    G = ForwardDiff.gradient(f, flat)
+    FD_STEP = 1e-5
+    for i in eachindex(flat)
+        e = zeros(length(flat)); e[i] = FD_STEP
+        fd = (f(flat + e) - f(flat - e)) / (2 * FD_STEP)
+        @test isapprox(G[i], fd; rtol=1e-5, atol=1e-8)
+    end
+end

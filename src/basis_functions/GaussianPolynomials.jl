@@ -38,8 +38,12 @@ function GaussianPolynomial(exps::Vector{Tuple{Int64, Int64, Int64}},
                             coeffs::AbstractVector{T1}, center::AbstractVector{T2},
                             spread::T3;
                             normalize_SAGTO=true) where {T1, T2, T3 <: Real}
-    # ensure that the given Gaussian Polynomial is normalized
-    prefac = normalize_SAGTO ? analytic_norm(exps, filter_dual.([coeffs, center, spread])...) : 1.
+    # Ensure that the given Gaussian Polynomial is normalized. The prefactor
+    # must carry the ∂/∂ζ partials: the analytic-integral path (hoppings) reads
+    # the normalized coefficients directly, so stripping duals here (the old
+    # GaIn-era workaround) silently breaks the spread gradient of any loss
+    # built on `integral`.
+    prefac = normalize_SAGTO ? analytic_norm(exps, coeffs, center, spread) : 1.
     coeffs = coeffs ./ prefac
 
     # Construct polynomial part
